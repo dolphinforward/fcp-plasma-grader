@@ -19,12 +19,14 @@ disk image directly, with this SHA-256:
 47f43137cf7ddff275b22c9f41a0545258ca574f77f9fbce9b40e8055b1c565b
 ```
 
-The disk image is staged only in a private build-assets repository. The public
-workflow receives a temporary read-only deploy key scoped to that repository.
-It cannot write to either repository. The workflow verifies the checksum, DMG,
-Apple installer signature, installed framework signatures, and SDK layout before
-compiling. After the final artifact is downloaded, remove the deploy-key secret,
-deploy key, and private SDK repository.
+For the v1.0 build, the disk image was staged only in a private build-assets
+repository. The public workflow received a temporary read-only deploy key scoped
+to that repository and could not write to either repository. The workflow
+verified the checksum, DMG, Apple installer signature, installed framework
+signatures, and SDK layout before compiling. After the final artifact was
+downloaded and independently verified, the deploy-key secret, deploy key, and
+private SDK repository were removed. A future owner build must deliberately
+recreate that private staging and secret.
 
 The SDK and deploy key must never be committed to this public repository.
 
@@ -50,6 +52,17 @@ Final Cut Pro itself is never modified. This bridge avoids redistributing an
 incompatible runtime and keeps the plug-in runtime in the same generation as
 the host. It is still an explicit compatibility experiment: only installation,
 registration, and render tests on the target FCP 10.6.5 Mac can prove it works.
+
+## Verified hosted result
+
+The first full release build succeeded in
+[GitHub Actions run 32659341596](https://github.com/dolphinforward/fcp-plasma-grader/actions/runs/32659341596)
+at source commit `fa399fcf6672f3bcdf3c3eff1f53342860b56aec`. It compiled Swift,
+Objective-C, and Metal, produced only x86_64 Mach-O executables with a macOS
+11.0 minimum, confirmed the two expected runtime-framework load commands,
+confirmed neither SDK runtime framework was embedded, validated the ad-hoc
+bundle signature, and uploaded a checksum-manifested installer archive. The
+downloaded archive then passed its SHA-256 and ZIP integrity checks independently.
 
 ## Run and download
 

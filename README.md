@@ -13,12 +13,13 @@ locked to the requested Intel Monterey target:
 - intended IDE: Xcode 14.2
 - no FxPlug 3, OpenGL, OpenCL, or third-party dependency
 
-The Linux authoring environment cannot run Final Cut Pro. The source has not yet
-completed an FxPlug SDK compile or an FCP runtime test. A GitHub-hosted Intel
-Mac probe has confirmed that the project parses in Xcode 16.4, and the repository
-now includes both automatic structural checks and a manual hosted build that can
-produce an installable archive. See [GITHUB_BUILD.md](GITHUB_BUILD.md) for the
-one-time Apple SDK authorization step and the remaining compatibility boundary.
+The Linux authoring environment cannot run Final Cut Pro. A GitHub-hosted Intel
+Mac has successfully compiled the complete Swift, Objective-C, and Metal product
+with Xcode 16.4 and the user-supplied FxPlug SDK 4.3.4, inspected both Mach-O
+binaries as x86_64 with a macOS 11.0 minimum, verified the ad-hoc signature, and
+packaged an installable archive. The target Final Cut Pro 10.6.5 runtime test is
+still outstanding. See [GITHUB_BUILD.md](GITHUB_BUILD.md) for the verified build
+and the remaining compatibility boundary.
 
 ## Important packaging fact: FxPlug registration versus the FCP browser
 
@@ -400,7 +401,9 @@ target.
 
 ## Install and register
 
-1. Download and unzip the `FCP-Plasma-Grader-x86_64` artifact.
+1. Download `FCP-Plasma-Grader-x86_64.zip` and `SHA256SUMS.txt` from the
+   [latest GitHub release](https://github.com/dolphinforward/fcp-plasma-grader/releases/latest),
+   verify the checksum if desired, and unzip the archive.
 2. Quit Final Cut Pro.
 3. Double-click `Install FCP Plasma Grader.command`. If Gatekeeper blocks the
    first launch, Control-click it, choose **Open**, and confirm.
@@ -447,12 +450,13 @@ collections survive a reinstall.
 
 These are deliberate, visible risk points rather than hidden API guesses:
 
-0. **No successful SDK compile yet.** The public hosted probe confirmed an
-   Intel runner, Xcode 16.4, and successful project parsing, but GitHub does not
-   preinstall FxPlug. The first private-input hosted workflow run must settle
-   source compatibility with that newer compiler and FxPlug 4.3.4 headers. Its
-   macOS 13 runtime frameworks are excluded; a successful hosted build still
-   does not replace the Monterey/FCP runtime tests.
+0. **No target FCP runtime test yet.** The complete product now compiles and
+   packages successfully on GitHub's Intel runner with Xcode 16.4 and FxPlug
+   4.3.4. The workflow confirmed x86_64 Mach-O output, a macOS 11.0 minimum,
+   required FxPlug/PluginManager linkage, no embedded macOS 13 runtime
+   frameworks, and a valid ad-hoc bundle signature. That build evidence does
+   not replace installation, registration, Effects-browser, and render tests
+   in Final Cut Pro 10.6.5 on Monterey.
    Apple’s current setup documentation names FCP 10.6.6 or newer, while this
    product deliberately targets 10.6.5. The required host interfaces all declare
    FxPlug 4.0 (or earlier) availability, and an exact-era FxPlug template exists,
@@ -474,12 +478,11 @@ These are deliberate, visible risk points rather than hidden API guesses:
    wrapper extension to `fxplug`. If PlugInKit on the target rejects that outer
    extension, the header/Apple template result must take precedence; record the
    observed bundle requirement before changing packaging.
-3. **Swift importer spellings.** The source uses the Xcode-era Apple FxPlug
-   examples’ `sourceImageIndex: UInt` and `quality: UInt` spellings. The hosted
-   Xcode 16.4/FxPlug 4.3.4 compile must use the exact generated protocol
-   signatures in `FxTileableEffect.h`; the `// UNVERIFIED` points in the source
-   identify this boundary. The exact-era Xcode 14.2/4.1 toolchain remains the
-   comparison if importer behavior differs.
+3. **Legacy importer differences.** The Xcode 16.4/FxPlug 4.3.4 compiler has
+   accepted the protocol signatures now in the source, including
+   `sourceImageIndex: UInt`, `quality: UInt`, and the Objective-C custom-value
+   bridge. The exact-era Xcode 14.2/FxPlug 4.1 importer remains a comparison
+   point if the legacy host exposes a different runtime contract.
 4. **`FxColorGamutAPI_v2` availability in the exact SDK/FCP pairing.** The wide-
    gamut adapter requests v2 and now fails the frame state rather than silently
    writing an unknown project gamut when the API is unavailable. Confirm the
@@ -524,15 +527,15 @@ These are deliberate, visible risk points rather than hidden API guesses:
     AppKit browser remains a fallback for hosts that allow it; its
     `NSOpenPanel`/child-window behavior still requires the target-Mac test.
 13. **Custom-value interpolation semantics.** LUT choices are discrete and the
-    custom value uses hold/step interpolation. Confirm that the target SDK wants
-    `FxCustomParameterInterpolation_v2` on `CSTLUTSelection` (the value object)
-    rather than on the effect class; this is the interpretation implied by the
-    left-value/right-value API shape.
+    custom value uses hold/step interpolation. FxPlug 4.3.4 compilation confirms
+    that `FxCustomParameterInterpolation_v2` belongs on `CSTLUTSelection`; the
+    remaining check is host behavior when FCP reads, writes, and keyframes that
+    value.
 14. **`.cube` dialect and texture upload.** v1 intentionally rejects 1D/shaper,
-    matrix, non-default-domain, and vendor-extension files. Confirm the Xcode
-    14.2 Metal importer accepts the macOS 11 3D `rgba32Float` texture upload and
-    the `replace(region:mipmapLevel:slice:withBytes:bytesPerRow:bytesPerImage:)`
-    signature. The manual LUT tests are required before shipping.
+    matrix, non-default-domain, and vendor-extension files. The hosted Metal
+    build accepts the macOS 11 3D `rgba32Float` descriptor and texture upload.
+    Manual LUT import, interpolation, and render tests remain required on the
+    target GPU/FCP combination.
 15. **LUT thumbnail source.** The reference chart is intentional; live FCP-frame
     previews are not claimed because no documented safe browser-frame callback
     was found. The visual test checks that this limitation is clearly labeled.
@@ -542,11 +545,11 @@ These are deliberate, visible risk points rather than hidden API guesses:
     SDK’s FxSimpleColorCorrector sample; if it is host-owned, move reset logic
     to the host-supported parameter-change path.
 
-17. **Parameter subgroup importer.** Current FxPlug documentation exposes
+17. **Parameter subgroup legacy behavior.** FxPlug 4.3.4 compilation confirms
     `startParameterSubGroup(_:parameterID:parameterFlags:)` and
-    `endParameterSubGroup()`. Confirm the exact first-argument label in the
-    Xcode 14.2 FxPlug 4.1 Swift importer. If it differs, change only the two
-    helper calls in `addParameters()`; the controls and their IDs remain stable.
+    `endParameterSubGroup()`. Confirm that FCP 10.6.5 displays the nested groups
+    correctly; if the exact-era runtime differs, keep the controls and stable
+    IDs while adapting only the grouping calls.
 
 18. **Organizer bridge delivery.** The URL-scheme launch and
     `DistributedNotificationCenter` round trip are standard macOS APIs, but the
@@ -572,6 +575,7 @@ These are deliberate, visible risk points rather than hidden API guesses:
     through the plugin, and exposes every published control before treating the
     release as install-ready.
 
-None of these points was compiled or exercised on the target machine in this
-environment. Treat the first Mac build and [TESTING.md](TESTING.md) as the
+All of these paths now compile in the hosted Xcode 16.4/FxPlug 4.3.4 build, but
+none has been exercised inside the target FCP 10.6.5 host in this environment.
+Treat the Monterey installation and [TESTING.md](TESTING.md) as the runtime
 acceptance gate.
