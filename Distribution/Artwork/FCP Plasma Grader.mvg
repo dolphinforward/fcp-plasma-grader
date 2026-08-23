@@ -1,0 +1,54 @@
+push graphic-context
+viewbox 0 0 640 360
+
+fill '#090b16'
+stroke none
+rectangle 0,0 640,360
+
+fill '#121b36'
+stroke none
+circle 510,65 690,245
+fill '#24112f'
+circle 530,310 760,80
+
+fill none
+stroke '#142f58'
+stroke-width 30
+path 'M 42,218 C 118,119 174,267 249,170 C 315,86 361,251 425,151 C 472,78 522,213 598,111'
+
+fill none
+stroke-width 9
+stroke '#00c8f2'
+path 'M 42,218 C 118,119 174,267 249,170'
+stroke '#7967ff'
+path 'M 249,170 C 315,86 361,251 425,151'
+stroke '#ef49c8'
+path 'M 425,151 C 472,78 522,213 598,111'
+
+stroke none
+fill '#f8f7ff'
+font 'DejaVu-Sans-Bold'
+font-size 34
+kerning 1
+text 42,72 'FCP PLASMA'
+
+font 'DejaVu-Sans'
+font-size 34
+kerning 11
+text 42,110 'GRADER'
+
+fill '#b8b7ca'
+font-size 16
+kerning 3
+text 44,323 'COLOR · TONE · LUT'
+
+fill none
+stroke-width 5
+stroke '#00c8f2'
+circle 492,278 517,278
+stroke '#ef49c8'
+circle 526,278 551,278
+stroke '#ffb13b'
+circle 509,249 534,249
+
+pop graphic-context

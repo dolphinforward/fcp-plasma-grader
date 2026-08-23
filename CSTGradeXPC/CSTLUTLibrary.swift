@@ -26,19 +26,13 @@ import Foundation
 import FxPlug
 #endif
 
-#if CST_GRADE_XPC
-private typealias CSTLUTInterpolationProtocol = FxCustomParameterInterpolation_v2
-#else
-private protocol CSTLUTInterpolationProtocol {}
-#endif
-
 // The interpolation protocol belongs on the custom value object: the value
 // on the left of a keyframe is `self`, and the host supplies the right value.
 // A LUT selection is a discrete choice, so interpolation is a hold/step.
 // UNVERIFIED: Xcode 14.2 may import the existential composition without the
 // `any` spelling used by current Apple documentation; confirm in FxPlug.h.
 @objc(CSTLUTSelection)
-final class CSTLUTSelection: NSObject, NSSecureCoding, NSCopying, CSTLUTInterpolationProtocol {
+final class CSTLUTSelection: NSObject, NSSecureCoding, NSCopying {
     static var supportsSecureCoding: Bool { true }
 
     let identifier: UInt64
@@ -90,7 +84,10 @@ final class CSTLUTSelection: NSObject, NSSecureCoding, NSCopying, CSTLUTInterpol
 
     override var hash: Int { identifier.hashValue }
 
-    #if CST_GRADE_XPC
+}
+
+#if CST_GRADE_XPC
+extension CSTLUTSelection: FxCustomParameterInterpolation_v2 {
     func interpolateBetween(
         _ rightValue: any NSCopying & NSSecureCoding & NSObjectProtocol,
         withWeight weight: Float
@@ -107,8 +104,8 @@ final class CSTLUTSelection: NSObject, NSSecureCoding, NSCopying, CSTLUTInterpol
         return identifier == other.identifier && displayName == other.displayName
             && sourcePath == other.sourcePath
     }
-    #endif
 }
+#endif
 
 /// The public custom-view API gives an FxPlug an embedded NSView, but does not
 /// document a host-safe full-window LUT browser. The outer .fxplug application

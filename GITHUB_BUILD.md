@@ -1,60 +1,91 @@
-# GitHub build setup
+# Build on GitHub without Xcode or Motion
 
-GitHub is useful here for public source control, review, structural checks, and
-repeatable artifacts. It cannot replace the target Mac for Final Cut Pro testing.
+The end-user route is now GitHub-hosted: GitHub supplies an Intel Mac and Xcode,
+the workflow installs Apple’s FxPlug SDK for that temporary runner, compiles the
+plug-in, and creates a zip containing the plug-in, pre-generated Final Cut effect
+template, thumbnails, installer, uninstaller, and notices. Nothing is installed
+on the user’s Mac except the finished effect.
 
-## Why the canonical build is self-hosted
+Final Cut Pro itself is not available on GitHub runners, so a successful build
+proves compilation and packaging, not that the effect loads or renders correctly
+in FCP 10.6.10 on Monterey.
 
-The required combination is Xcode 14.2, the separately installed FxPlug 4.1
-sparse SDK, Intel `x86_64`, and macOS Monterey. GitHub's current standard Intel
-hosted runners use newer macOS images and do not provide this exact toolchain.
-The repository therefore has two deliberately separate workflows:
+## Why one Apple secret is still needed
 
-- `Structural checks` runs automatically on GitHub's Ubuntu runner. It validates
-  plists, Xcode references/settings, stable IDs, Swift/Metal uniform parity,
-  single-kernel stage order, and independent colour-math references. It does not
-  claim to compile the plugin.
-- `Canonical Intel Monterey build` runs only when manually dispatched and only
-  by the repository owner on a self-hosted runner labeled `cst-grade`. It
-  refuses to build unless it sees Intel hardware, macOS 12, Xcode 14.2, and the
-  FxPlug SDK/frameworks. Public pull requests cannot invoke this job.
+Apple distributes FxPlug separately from Xcode through authenticated Developer
+Downloads. Current GitHub Intel images include Xcode and the Metal compiler but
+not `FxPlug.sdk`, `FxPlug.framework`, or `PluginManager.framework`. The repository
+must therefore receive a short-lived `ADCDownloadAuth` cookie so its private
+Actions job can download the official disk image directly from Apple.
 
-## One-time target-Mac setup
+The workflow never asks for an Apple ID password, never prints the cookie, never
+uploads the SDK, and is guarded so only the repository owner can run it. Treat
+the cookie like a password while it is valid.
 
-1. Install Xcode 14.2 and the FxPlug 4.1 SDK on the Monterey Intel Mac as
-   described in `README.md`.
-2. In the GitHub repository, open **Settings > Actions > Runners > New
-   self-hosted runner**, choose macOS/x64, and follow GitHub's generated commands
-   on the Mac. Those commands contain a short-lived registration token; never
-   commit it.
-3. During `config.sh`, add the custom label `cst-grade`. The runner's resulting
-   labels must include `self-hosted`, `macOS`, `X64`, and `cst-grade`.
-4. Prefer a dedicated, non-admin macOS account. This repository is public, so
-   do not add `pull_request`, `pull_request_target`, or automatic `push` triggers
-   to the self-hosted workflow, and do not remove its repository-owner guard.
-   Allow only trusted collaborators to edit workflows and stop the runner when
-   builds are not needed. A self-hosted runner executes repository workflow
-   code on that Mac.
+## One-time browser setup
 
-GitHub documents self-hosted macOS 11 or later and x64 as supported, so Monterey
-fits the runner requirements. The exact FxPlug/Xcode environment remains yours
-to install because it is not part of a GitHub image.
+1. In a browser, sign in to [Apple Developer Downloads](https://developer.apple.com/download/all/?q=FxPlug)
+   with an Apple ID that can access the FxPlug download page.
+2. Open the browser’s developer tools on that signed-in page:
+   - Chrome/Edge: **Application > Storage > Cookies > developer.apple.com**.
+   - Safari: enable the Develop menu, then choose **Show Web Inspector >
+     Storage > Cookies**.
+3. Find the cookie named `ADCDownloadAuth` and copy **only its value**. Do not
+   paste the value into this repository, an issue, a workflow input, or chat.
+4. Open the repository’s **Settings > Secrets and variables > Actions**, choose
+   **New repository secret**, name it exactly `ADC_DOWNLOAD_AUTH`, paste the
+   value, and save it.
+5. Run **Actions > Hosted Intel release build > Run workflow**. Keep the default
+   FxPlug SDK version `4.1` and Xcode path on the first attempt.
+6. After the successful run, delete `ADC_DOWNLOAD_AUTH` from repository secrets.
+   Add a fresh value later if another build is needed after the cookie expires.
 
-## Run and download a build
+The optional SHA-256 workflow input may be filled when an authoritative checksum
+for the exact Apple disk image is available. Even without it, the workflow uses
+HTTPS, verifies the DMG structure, and requires Apple’s signed installer package
+before installation.
 
-1. Start the self-hosted runner on the Mac.
-2. Open **Actions > Canonical Intel Monterey build > Run workflow**.
-3. Leave the default Xcode path or enter the actual absolute Xcode 14.2 app path,
-   such as `/Applications/Xcode_14.2.app`.
-4. When the job succeeds, download `CSTGrade-x86_64-<commit>` from the run's
-   **Artifacts** section. It contains `CSTGrade.fxplug.zip` and
-   `SHA256SUMS.txt`.
-5. Verify the checksum, unzip the bundle, then follow `README.md` and
-   `TESTING.md`. The CI product is intentionally unsigned; sign it with the
-   appropriate development or distribution identity before relying on strict
-   code-signing validation.
+## Download and install the result
 
-The build workflow is manual so a commit cannot leave an unavailable home Mac
-job queued for 24 hours. Final Cut Pro registration, Motion template creation,
-visual output, exports, performance, and security-scoped bookmark behavior still
-require the manual acceptance plan on the target Mac.
+1. Open the successful workflow run and download the artifact named
+   `FCP-Plasma-Grader-x86_64-<commit>`.
+2. Unzip the downloaded artifact, then unzip
+   `FCP-Plasma-Grader-x86_64.zip` inside it.
+3. Open `README-FIRST.txt` and double-click
+   `Install FCP Plasma Grader.command`.
+4. Test the effect in Final Cut Pro using [TESTING.md](TESTING.md).
+
+The zip is ad-hoc signed, not Developer ID notarized. The installer clears the
+download quarantine attribute only from the two exact validated payloads it
+installs. A later public release should use a Developer ID Application identity
+and Apple notarization if frictionless Gatekeeper distribution is required.
+
+## What the hosted probe established
+
+The public `Hosted macOS build probe` passed on GitHub’s `macos-15-intel` image.
+It observed Intel `x86_64`, macOS 15.7.7, Xcode 16.4, a Metal compiler, and no
+preinstalled FxPlug SDK/frameworks. It also verified that Xcode can parse and
+list this project after the build-setting syntax correction. That is useful
+environment evidence, but it is not an FxPlug compilation.
+
+Xcode 16.4 is newer than the canonical Xcode 14.2 toolchain for Monterey. If the
+hosted build exposes Swift importer differences, fix those against the requested
+FxPlug 4.1 headers without raising the deployment target. If Apple no longer
+serves the 4.1 disk image at its historical official URL, stop and investigate;
+do not silently substitute a newer SDK and call it Monterey-compatible.
+
+## Other workflows
+
+- `Structural checks` runs on Ubuntu for every push and pull request. It checks
+  project references/settings, plists, stable IDs, Swift/Metal uniform parity,
+  effect-template structure, installer payloads, stage order, and independent
+  colour-math references. It does not compile Swift or Metal.
+- `Canonical Intel Monterey build` remains available for a trusted self-hosted
+  Mac labeled `cst-grade`. It enforces macOS 12, Xcode 14.2, Intel hardware, and
+  the locally installed FxPlug 4.1 SDK. It is the exact-toolchain fallback, not
+  a requirement for an end user.
+- `Hosted macOS build probe` is diagnostic only and produces no release.
+
+GitHub’s standard hosted runners are ephemeral. The workflow’s repository-owner
+guard and manual trigger must remain in place while an Apple download secret is
+configured.

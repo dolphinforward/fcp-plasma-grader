@@ -1,0 +1,180 @@
+name: Hosted Intel release build
+
+on:
+  workflow_dispatch:
+    inputs:
+      fxplug_sdk_version:
+        description: Apple FxPlug SDK version from Developer Downloads
+        required: true
+        default: "4.1"
+        type: string
+      fxplug_sdk_sha256:
+        description: Optional lowercase SHA-256 for the Apple DMG
+        required: false
+        type: string
+      xcode_app:
+        description: Preinstalled Xcode application on macos-15-intel
+        required: true
+        default: /Applications/Xcode_16.4.app
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    # The repository is public. Only the owner may pass the short-lived Apple
+    # download cookie to an SDK installation/build job.
+    if: github.actor == github.repository_owner
+    runs-on: macos-15-intel
+    timeout-minutes: 30
+    env:
+      ADC_DOWNLOAD_AUTH: ${{ secrets.ADC_DOWNLOAD_AUTH }}
+      FXPLUG_SDK_VERSION: ${{ inputs.fxplug_sdk_version }}
+      FXPLUG_SDK_SHA256: ${{ inputs.fxplug_sdk_sha256 }}
+      XCODE_APP: ${{ inputs.xcode_app }}
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Verify hosted build inputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(uname -m)" = "x86_64"
+          test -d "$XCODE_APP/Contents/Developer"
+          [[ "$FXPLUG_SDK_VERSION" =~ ^[0-9]+\.[0-9]+(\.[0-9]+)?$ ]]
+          if test -n "$FXPLUG_SDK_SHA256"; then
+            [[ "$FXPLUG_SDK_SHA256" =~ ^[0-9a-f]{64}$ ]]
+          fi
+          if test -z "$ADC_DOWNLOAD_AUTH"; then
+            echo "::error::Repository secret ADC_DOWNLOAD_AUTH is missing. Sign in to Apple Developer Downloads and save the ADCDownloadAuth cookie value as that Actions secret."
+            exit 1
+          fi
+          export DEVELOPER_DIR="$XCODE_APP/Contents/Developer"
+          xcodebuild -version
+          python3 tools/verify_project.py
+
+      - name: Download and install Apple FxPlug SDK
+        shell: bash
+        run: |
+          set -euo pipefail
+          sdk_dmg="$RUNNER_TEMP/FxPlug_SDK_${FXPLUG_SDK_VERSION}.dmg"
+          sdk_url="https://download.developer.apple.com/Developer_Tools/FxPlug_SDK_${FXPLUG_SDK_VERSION}/FxPlug_SDK_${FXPLUG_SDK_VERSION}.dmg"
+          curl \
+            --fail \
+            --location \
+            --retry 3 \
+            --silent \
+            --show-error \
+            --referer "https://developer.apple.com/" \
+            --user-agent "Mozilla/5.0" \
+            --cookie "ADCDownloadAuth=${ADC_DOWNLOAD_AUTH}" \
+            "$sdk_url" \
+            --output "$sdk_dmg"
+
+          if test -n "$FXPLUG_SDK_SHA256"; then
+            echo "$FXPLUG_SDK_SHA256  $sdk_dmg" | shasum -a 256 --check
+          fi
+          hdiutil verify "$sdk_dmg"
+
+          mount_point="$RUNNER_TEMP/FxPlugSDKMount"
+          mkdir -p "$mount_point"
+          hdiutil attach "$sdk_dmg" -nobrowse -readonly -mountpoint "$mount_point"
+          cleanup_mount() {
+            hdiutil detach "$mount_point" >/dev/null 2>&1 || true
+          }
+          trap cleanup_mount EXIT
+
+          sdk_pkg="$(find "$mount_point" -maxdepth 3 -name 'FxPlugSDK.pkg' -print -quit)"
+          test -n "$sdk_pkg"
+          pkgutil --check-signature "$sdk_pkg"
+          sudo installer -pkg "$sdk_pkg" -target /
+          cleanup_mount
+          trap - EXIT
+
+          test -d /Library/Developer/SDKs/FxPlug.sdk
+          test -d /Library/Frameworks/FxPlug.framework
+          test -d /Library/Frameworks/PluginManager.framework
+
+      - name: Build x86_64 Monterey-compatible bundle
+        id: build
+        shell: bash
+        run: |
+          set -euo pipefail
+          export DEVELOPER_DIR="$XCODE_APP/Contents/Developer"
+          derived="$RUNNER_TEMP/CSTGradeDerivedData-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
+          xcodebuild \
+            -project CSTGrade.xcodeproj \
+            -scheme CSTGrade \
+            -configuration Release \
+            -derivedDataPath "$derived" \
+            ARCHS=x86_64 \
+            ONLY_ACTIVE_ARCH=NO \
+            MACOSX_DEPLOYMENT_TARGET=11.0 \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            build 2>&1 | tee "$RUNNER_TEMP/xcodebuild.log"
+          echo "derived_data=$derived" >> "$GITHUB_OUTPUT"
+
+      - name: Inspect and ad-hoc sign product
+        id: product
+        shell: bash
+        run: |
+          set -euo pipefail
+          bundle="${{ steps.build.outputs.derived_data }}/Build/Products/Release/CSTGrade.fxplug"
+          wrapper="$bundle/Contents/MacOS/CSTGrade"
+          service_bundle="$bundle/Contents/PlugIns/CSTGradeXPC.pluginkit"
+          service="$service_bundle/Contents/MacOS/CSTGradeXPC"
+          test -d "$bundle"
+          test -f "$wrapper"
+          test -f "$service"
+          test -f "$service_bundle/Contents/Resources/default.metallib"
+          test "$(lipo -archs "$wrapper")" = "x86_64"
+          test "$(lipo -archs "$service")" = "x86_64"
+
+          while IFS= read -r framework; do
+            codesign --force --sign - --timestamp=none "$framework"
+          done < <(find "$service_bundle/Contents/Frameworks" -maxdepth 1 -type d -name '*.framework' -print | sort)
+          codesign --force --sign - --timestamp=none "$service_bundle"
+          codesign --force --sign - --timestamp=none "$bundle"
+          codesign --verify --deep --strict --verbose=2 "$bundle"
+          file "$wrapper" "$service"
+          otool -l "$wrapper" | grep -A5 LC_BUILD_VERSION
+          otool -l "$service" | grep -A5 LC_BUILD_VERSION
+          echo "bundle=$bundle" >> "$GITHUB_OUTPUT"
+
+      - name: Package plug-in, Motion-free template, and installer
+        id: package
+        shell: bash
+        run: |
+          set -euo pipefail
+          release="$RUNNER_TEMP/FCP Plasma Grader"
+          artifact="$RUNNER_TEMP/FCPPlasmaGraderArtifact"
+          mkdir -p "$release" "$artifact"
+          ditto "${{ steps.product.outputs.bundle }}" "$release/CSTGrade.fxplug"
+          ditto "Distribution/Motion Templates.localized" "$release/Motion Templates.localized"
+          cp "Distribution/Install FCP Plasma Grader.command" "$release/"
+          cp "Distribution/Uninstall FCP Plasma Grader.command" "$release/"
+          cp Distribution/README-FIRST.txt THIRD_PARTY_NOTICES.md "$release/"
+          chmod +x "$release/Install FCP Plasma Grader.command" "$release/Uninstall FCP Plasma Grader.command"
+          ditto -c -k --sequesterRsrc --keepParent "$release" "$artifact/FCP-Plasma-Grader-x86_64.zip"
+          (cd "$artifact" && shasum -a 256 FCP-Plasma-Grader-x86_64.zip > SHA256SUMS.txt)
+          echo "artifact=$artifact" >> "$GITHUB_OUTPUT"
+
+      - name: Upload installable artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: FCP-Plasma-Grader-x86_64-${{ github.sha }}
+          path: ${{ steps.package.outputs.artifact }}
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Upload build log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hosted-build-log-${{ github.run_id }}
+          path: ${{ runner.temp }}/xcodebuild.log
+          if-no-files-found: ignore
+          retention-days: 7

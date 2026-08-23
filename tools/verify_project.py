@@ -169,6 +169,8 @@ def main() -> int:
     shader = read("CSTGradeXPC/CSTShaders.metal")
     lut_source = read("CSTGradeXPC/CSTLUTLibrary.swift")
     self_hosted_workflow = read(".github/workflows/build-self-hosted.yml")
+    hosted_workflow = read(".github/workflows/build-hosted.yml")
+    installer = read("Distribution/Install FCP Plasma Grader.command")
     readme = read("README.md")
     testing = read("TESTING.md")
 
@@ -317,6 +319,64 @@ def main() -> int:
         check(any(item.get("BlueprintName") == "CSTGrade" for item in references), "shared scheme must build CSTGrade")
     except Exception as error:
         check(False, f"shared Xcode scheme is invalid XML: {error}")
+
+    motion_template_path = ROOT / (
+        "Distribution/Motion Templates.localized/Effects.localized/"
+        "FCP Plasma Grader/FCP Plasma Grader/FCP Plasma Grader.moef"
+    )
+    try:
+        motion_template = ET.parse(motion_template_path)
+        motion_root = motion_template.getroot()
+        check(motion_root.tag == "ozml", "Motion template root must be ozml")
+        check(motion_root.get("version") == "5.13", "Motion template must use the Monterey-era ozml version")
+        check(
+            motion_root.findtext("displayversion") == "5.6.4",
+            "Motion template display version must remain compatible with the target FCP generation",
+        )
+        registered_uuid = plugins[0].get("plugInUUID") if plugins else None
+        filters = motion_root.findall(f".//filter[@pluginUUID='{registered_uuid}']")
+        check(len(filters) == 1, "Motion template must bind exactly once to the registered FxPlug UUID")
+        if filters:
+            fx_filter = filters[0]
+            check(fx_filter.get("pluginName") == "CST Grade", "Motion template plugin name must match registration")
+            group_ids = {str(value) for value in range(24, 31)}
+            direct_groups = {
+                child.get("id") for child in fx_filter.findall("parameter") if child.get("id") in group_ids
+            }
+            check(direct_groups == group_ids, "Motion template must contain every stable inspector group")
+            controls = {
+                child.get("id")
+                for group in fx_filter.findall("parameter")
+                if group.get("id") in group_ids
+                for child in group.findall("parameter")
+            }
+            expected_controls = {str(value) for value in list(range(1, 24)) + list(range(31, 37))}
+            check(controls == expected_controls, "Motion template control IDs differ from the persisted contract")
+        published = [target.get("channel") for target in motion_root.findall(".//publishSettings/target")]
+        check(
+            published == [f"./{value}" for value in range(24, 31)],
+            "Motion template must publish the seven inspector groups in pipeline order",
+        )
+    except Exception as error:
+        check(False, f"Motion effect template is invalid XML: {error}")
+
+    for marker in [
+        'runs-on: macos-15-intel',
+        'if: github.actor == github.repository_owner',
+        'secrets.ADC_DOWNLOAD_AUTH',
+        'https://download.developer.apple.com/Developer_Tools/FxPlug_SDK_',
+        'ARCHS=x86_64',
+        'MACOSX_DEPLOYMENT_TARGET=11.0',
+        'Distribution/Motion Templates.localized',
+    ]:
+        check(marker in hosted_workflow, f"hosted build is missing required behavior: {marker}")
+    for marker in [
+        '$HOME/Library/Plug-Ins/FxPlug',
+        '$HOME/Movies/Motion Templates.localized/Effects.localized/FCP Plasma Grader',
+        'pgrep -x "Final Cut Pro"',
+        'pluginkit -a',
+    ]:
+        check(marker in installer, f"installer is missing required behavior: {marker}")
 
     for marker in [
         "FCP Plasma Grader",

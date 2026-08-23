@@ -13,13 +13,12 @@ locked to the requested Intel Monterey target:
 - intended IDE: Xcode 14.2
 - no FxPlug 3, OpenGL, OpenCL, or third-party dependency
 
-The Linux authoring environment cannot run Xcode, the Metal compiler, macOS, or
-Final Cut Pro. The project has therefore not been compiled or tested here. The
-first build and all host behaviour remain target-Mac checks; see [TESTING.md](TESTING.md).
-
-The repository also includes automatic Linux-side structural checks and a
-manual self-hosted Monterey build workflow. See [GITHUB_BUILD.md](GITHUB_BUILD.md)
-for the exact GitHub setup and its security/toolchain boundaries.
+The Linux authoring environment cannot run Final Cut Pro. The source has not yet
+completed an FxPlug SDK compile or an FCP runtime test. A GitHub-hosted Intel
+Mac probe has confirmed that the project parses in Xcode 16.4, and the repository
+now includes both automatic structural checks and a manual hosted build that can
+produce an installable archive. See [GITHUB_BUILD.md](GITHUB_BUILD.md) for the
+one-time Apple SDK authorization step and the remaining compatibility boundary.
 
 ## Important packaging fact: FxPlug registration versus the FCP browser
 
@@ -29,29 +28,20 @@ service. The outer product in this project is deliberately named
 contains `Contents/PlugIns/CSTGradeXPC.pluginkit`.
 
 Final Cut Pro does not create a user-facing Effects-browser item or category
-from the raw FxPlug registration alone. Apple’s workflow is to make a Final Cut
-Effect template in Motion that contains the FxPlug filter and publishes its
-parameters. This is a host document/template step, not source code that can be
-represented reliably as a hand-written plist. Apple documents that an FxPlug
-must be placed in a Motion Final Cut Effect to be used in Final Cut Pro:
-[Creating FxPlug Plug-ins for Final Cut Pro](https://developer.apple.com/library/archive/documentation/AppleApplications/Conceptual/FXPlug_overview/FxPlugsFCPx/FxPlugsFCPx.html).
+from the raw FxPlug registration alone. Apple’s supported authoring workflow is
+to create a Final Cut Effect in Motion, add the FxPlug filter, and publish its
+parameters. Apple documents that requirement in
+[Preparing plug-ins for use in Final Cut Pro](https://developer.apple.com/documentation/professional-video-applications/preparing-plug-ins-for-use-in-final-cut-pro).
 
-After the first successful install, perform the one-time Motion step below:
-
-1. Open Motion and create a **Final Cut Effect** project.
-2. Add the registered **CST Grade** FxPlug filter. In Motion’s Library/Filters
-   view it should be listed under the `CST Grade` registration group.
-3. Publish the parameters you want visible in Final Cut Pro. The source plugin
-   declares all controls; publishing is the template author’s choice.
-4. Save the template with category **CST Grade** and name **CST Grade** under
-   the user Motion Templates Effects folder. The expected result is similar to:
-
-   `~/Movies/Motion Templates/Effects/CST Grade/CST Grade.moef`
-
-5. Restart Final Cut Pro and look under the custom **CST Grade** category.
-
-If Motion cannot see the raw plugin, do not continue to the FCP template step:
-fix registration/install/signing first and use the checks in [TESTING.md](TESTING.md).
+End users do **not** need Motion. This repository ships a generated Motion
+template package under `Distribution/Motion Templates.localized`; the release
+installer copies that template and the plug-in together. The template preserves
+the registered effect UUID, stable parameter IDs, pipeline group order, and
+thumbnail artwork. Generating the package without Motion is an interoperability
+path rather than Apple’s documented authoring path, so it remains explicitly
+unverified until the first Final Cut Pro 10.6.10 Effects-browser test. Motion is
+useful only as an optional developer diagnostic if that test exposes a template
+serialization difference.
 
 ## Architecture and render lifecycle
 
@@ -320,19 +310,26 @@ unpremultiply/texture-format adaptation is required.
 
 ## Prerequisites
 
-On the target Mac, install:
+An end user needs only a supported Intel Mac, Final Cut Pro, and the release
+archive. Xcode, Motion, and the FxPlug SDK are not installed by the release and
+are not required to use it.
 
-1. macOS 12 Monterey on the Intel 2015 MacBook Pro.
-2. Xcode 14.2. Do not select Xcode 14.3 or newer for this target.
-3. Final Cut Pro 10.6.10 for host testing.
-4. The FxPlug 4.1 SDK from Apple Developer Downloads. Search Apple’s download
-   portal for **FxPlug**; an Apple Developer account may be required. The
-   FxPlug 4.1 installer must provide:
+There are two developer build routes:
 
-   `/Library/Developer/SDKs/FxPlug.sdk`
+1. **GitHub-hosted build (no local Xcode or Motion):** add the short-lived Apple
+   Developer Downloads cookie described in [GITHUB_BUILD.md](GITHUB_BUILD.md),
+   then run the manual hosted workflow. GitHub supplies the Intel Mac and Xcode;
+   the workflow downloads the SDK directly from Apple and packages the result.
+2. **Canonical local build:** use macOS 12 Monterey, Xcode 14.2, and the FxPlug
+   4.1 SDK. This is the closest match to the intended Final Cut Pro 10.6.10 host
+   and remains the compatibility reference if the newer hosted compiler differs.
 
-   The sparse SDK change and the required Additional SDK path are documented by
-   Apple in [Migrating FxPlug 3 plug-ins to FxPlug 4](https://developer.apple.com/documentation/professional-video-applications/migrating-fxplug-3-plug-ins-to-fxplug-4).
+Both routes require the FxPlug SDK to provide:
+
+`/Library/Developer/SDKs/FxPlug.sdk`
+
+The sparse SDK change and required Additional SDK path are documented by Apple
+in [Migrating FxPlug 3 plug-ins to FxPlug 4](https://developer.apple.com/documentation/professional-video-applications/migrating-fxplug-3-plug-ins-to-fxplug-4).
 
 Before opening the project, verify the SDK and framework locations in Finder or
 Terminal. This project intentionally uses the required sparse-SDK settings:
@@ -355,9 +352,9 @@ floor. It does not call macOS 12/13/14-only APIs, use OpenGL/OpenCL, or emit an
 Apple Silicon slice. The target Mac still has to confirm the exact FxPlug 4.1
 headers and FCP behavior.
 
-## Build on the Mac
+## Build on a local Mac
 
-Do these steps on the Monterey Mac; they are intentionally not automated here.
+This is the canonical fallback. Skip it when using the hosted workflow.
 
 1. Open `CSTGrade.xcodeproj` in Xcode 14.2.
 2. Select the `CSTGrade` wrapper target/scheme, configuration **Release**, and
@@ -385,26 +382,26 @@ Do these steps on the Monterey Mac; they are intentionally not automated here.
 
 If Xcode does not show a shared scheme, choose **Product > Scheme > Manage
 Schemes**, add a scheme for the `CSTGrade` application target, and select the
-Release configuration. No `xcodebuild` or `metal` script is supplied or needed;
-Xcode compiles the `.metal` source as part of the XPC target.
+Release configuration. Xcode compiles the `.metal` source as part of the XPC
+target.
 
 ## Install and register
 
-Quit Final Cut Pro and Motion before replacing an installed copy. Use the exact
-user plug-in directory requested for this project:
+1. Download and unzip the `FCP-Plasma-Grader-x86_64` artifact.
+2. Quit Final Cut Pro.
+3. Double-click `Install FCP Plasma Grader.command`. If Gatekeeper blocks the
+   first launch, Control-click it, choose **Open**, and confirm.
+4. Start Final Cut Pro and search Effects for **FCP Plasma Grader**.
 
-```sh
-mkdir -p "$HOME/Library/Plug-Ins/FxPlug"
-cp -R "/path/to/Build/Products/Release/CSTGrade.fxplug" \
-  "$HOME/Library/Plug-Ins/FxPlug/"
+The installer validates and copies only these two payloads, moving replaced
+copies to Trash as timestamped backups:
+
+```text
+~/Library/Plug-Ins/FxPlug/CSTGrade.fxplug
+~/Movies/Motion Templates.localized/Effects.localized/FCP Plasma Grader/FCP Plasma Grader
 ```
 
-If a previous copy exists, remove or move only this exact bundle before copying
-the new one. Do not delete the whole `FxPlug` directory; it may contain other
-users’ plugins.
-
-Launch the installed wrapper once if PlugInKit does not register it
-automatically, then verify registration:
+No Xcode or Motion installation is involved. To diagnose registration, run:
 
 ```sh
 pluginkit -m -v -p FxPlug | grep CSTGrade
@@ -412,8 +409,7 @@ pluginkit -m -v -p FxPlug | grep CSTGrade
 
 Restart Final Cut Pro after every install or replacement. FCP caches plugin
 discovery and will not reliably pick up a changed bundle in an already-running
-process. Complete the Motion `.moef` step above before expecting a custom FCP
-Effects-browser category.
+process. The bundled `.moef` supplies the custom Effects-browser category.
 
 The LUT library metadata is separate from the plug-in bundle, so reinstalling
 the effect does not lose imported LUT bookmarks, favorites, or collections. If
@@ -423,24 +419,22 @@ different file.
 
 ## Uninstall
 
-Quit Final Cut Pro and Motion, then remove only the installed CST Grade bundle
-and its optional Motion template:
-
-```sh
-rm -rf "$HOME/Library/Plug-Ins/FxPlug/CSTGrade.fxplug"
-rm -rf "$HOME/Movies/Motion Templates/Effects/CST Grade/CST Grade.moef"
-```
-
-Restart the host applications. The first command removes the registered FxPlug
-bundle; the second removes the FCP browser template. The LUT metadata file is
-not removed by these commands; remove only
-`~/Library/Application Support/CSTGrade/lut-library.json` if you also want to
-discard the library’s favorites and collections. Neither command is run by this
-repository.
+Quit Final Cut Pro and double-click `Uninstall FCP Plasma Grader.command` from
+the release folder. It asks for confirmation and moves only the installed
+plug-in and bundled effect template to Trash. It intentionally keeps
+`~/Library/Application Support/CSTGrade/lut-library.json`, so favorites and
+collections survive a reinstall.
 
 ## What I am unsure about
 
 These are deliberate, visible risk points rather than hidden API guesses:
+
+0. **No successful SDK compile yet.** The public hosted probe confirmed an
+   Intel runner, Xcode 16.4, and successful project parsing, but GitHub does not
+   preinstall FxPlug. The first authenticated hosted workflow run must settle
+   source compatibility with that newer compiler and the requested FxPlug 4.1
+   headers. A successful hosted build still does not replace the Monterey/FCP
+   runtime tests.
 
 1. **Exact installed SDK layout.** The sparse SDK module maps follow the FxPlug
    4.1 example layout, but the physical framework symlink location can depend on
@@ -497,8 +491,8 @@ These are deliberate, visible risk points rather than hidden API guesses:
     `FxCustomParameterActionAPI_v4`, and the source follows those names. The
     Xcode 14.2 Swift importer, FCP 10.6.10’s viewbridge, and ARC lifetime
     behavior for an AppKit custom view must be confirmed from the installed
-    headers and by the Motion test. The source retains views strongly and marks
-    the uncertain selector/class-set spellings.
+    headers and by the FCP inspector test. The source retains views strongly and
+    marks the uncertain selector/class-set spellings.
 12. **Separate LUT browser window.** The public API documents an embedded
     `NSView`, not a dedicated FCP LUT-browser surface. The primary path now uses
     the outer wrapper application as the organizer, with the custom view reduced
@@ -545,6 +539,13 @@ These are deliberate, visible risk points rather than hidden API guesses:
     on Monterey; if a distribution environment requires App Sandbox, give both
     targets the same signed application-group arrangement rather than enabling
     it for only one target.
+
+20. **Generated Motion template compatibility.** The committed `.moef` uses the
+    Monterey-era XML format and publishes stable parameter IDs without requiring
+    Motion. Its custom LUT value cannot be serialized against the private host
+    archive format in this Linux environment. Confirm that FCP 10.6.10 loads the
+    template, creates the default custom value through the plugin, and exposes
+    every published control before treating the release as install-ready.
 
 None of these points was compiled or exercised on the target machine in this
 environment. Treat the first Mac build and [TESTING.md](TESTING.md) as the

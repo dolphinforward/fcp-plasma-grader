@@ -1,10 +1,10 @@
 # FCP Plasma Grader / CST Grade manual test plan
 
-These tests must be run on the target Intel MacBook Pro with macOS 12
-Monterey, Xcode 14.2, Final Cut Pro 10.6.10, and the installed FxPlug SDK.
-They are intentionally manual because the authoring environment has no macOS,
-Xcode, Metal compiler, or Final Cut Pro. Record the exact OS/FCP/Xcode/SDK
-versions and keep one known-good test library before changing the plugin.
+These tests must be run on the target Intel MacBook Pro with macOS 12 Monterey
+and Final Cut Pro 10.6.10. An end user does not need Xcode, Motion, or the FxPlug
+SDK. Build-only checks may run on GitHub or on the canonical Xcode 14.2/FxPlug
+4.1 development setup. Record the exact OS/FCP/build artifact versions and keep
+one known-good test library before changing the plugin.
 
 For every visual test, also inspect the Console output and the FCP render
 quality being used. A failed registration/API test should be fixed before
@@ -14,14 +14,14 @@ interpreting colour results.
 
 Action:
 
-1. Open `CSTGrade.xcodeproj` in Xcode 14.2.
-2. Select Release for the `CSTGrade` wrapper target and build it.
+1. Build with the hosted workflow or the canonical local Xcode 14.2 setup.
+2. Unzip the release artifact.
 3. In Terminal, inspect the built executable and bundles:
 
 ```sh
-file "/path/to/Build/Products/Release/CSTGrade.fxplug/Contents/MacOS/CSTGrade"
-lipo -info "/path/to/Build/Products/Release/CSTGrade.fxplug/Contents/MacOS/CSTGrade"
-codesign --verify --deep --strict --verbose=2 "/path/to/Build/Products/Release/CSTGrade.fxplug"
+file "/path/to/CSTGrade.fxplug/Contents/MacOS/CSTGrade"
+lipo -info "/path/to/CSTGrade.fxplug/Contents/MacOS/CSTGrade"
+codesign --verify --deep --strict --verbose=2 "/path/to/CSTGrade.fxplug"
 ```
 
 Correct result:
@@ -40,9 +40,10 @@ unsigned/partially signed nested bundle.
 
 Action:
 
-1. Quit FCP and Motion.
-2. Install only `CSTGrade.fxplug` into
-   `~/Library/Plug-Ins/FxPlug/` as described in the README.
+1. Quit Final Cut Pro.
+2. Run `Install FCP Plasma Grader.command` from the release. Confirm that it
+   reports both the plug-in and effect-template destination without requesting
+   Xcode or Motion.
 3. Run:
 
 ```sh
@@ -57,14 +58,14 @@ Failure caught: malformed `PlugInKit`/`ProPlug` plist keys, wrong principal
 class, wrong bundle nesting, duplicate UUIDs, stale installed copy, signing,
 or a wrapper extension that the target PlugInKit rejects.
 
-## 3. Motion instantiation and parameter declaration
+## 3. FCP instantiation and parameter declaration
 
 Action:
 
-1. Launch Motion only after registration succeeds.
-2. Create a small Final Cut Effect project and add the registered **CST Grade**
-   FxPlug filter.
-3. Open the inspector and verify every declared control exists exactly once:
+1. Restart Final Cut Pro after registration succeeds.
+2. Find **FCP Plasma Grader** in the Effects browser and apply it to a short
+   test clip.
+3. Open FCP’s inspector and verify every published control exists exactly once:
 
 - Native sections appear in this order: 1. Input Decode, 2. Gamut Transform,
   3. Linear Grade, 4. Tone Map, 5. Output Encode, 6. Creative LUT, Utilities.
@@ -80,7 +81,7 @@ Action:
 - LUT Library, Creative LUT Enabled, Creative LUT Amount
 - Global Bypass, Reset All Controls
 
-Correct result: Motion instantiates the XPC service, displays the controls in
+Correct result: FCP instantiates the XPC service, displays the controls in
 pipeline order with each stage toggle adjacent to its controls, and shows the
 intended defaults without an “effect missing” or “cannot load plug-in” alert.
 Turning a stage off visibly disables only that stage’s controls; Tone Map
@@ -92,22 +93,23 @@ parameter creation/setting API versions, subgroup importer spelling, bad popup
 entries, bad colour-parameter flags, or a mismatched
 `CSTParameterIDs.swift`/plist class name.
 
-## 4. FCP Effects-browser category
+## 4. Motion-free installation and Effects-browser category
 
 Action:
 
-1. In Motion, save a Final Cut Effect containing the plugin as category
-   `CST Grade`, name `CST Grade`.
-2. Quit Motion and restart Final Cut Pro.
-3. Search the Effects browser for the custom category and apply the effect to a
-   short test clip.
+1. On a user account that does not have Motion or Xcode installed, run the
+   release installer and restart Final Cut Pro.
+2. Search the Effects browser for the **FCP Plasma Grader** category and apply
+   the effect to a short test clip.
+3. Quit and reopen FCP, then reopen the project and verify the applied effect and
+   its settings persist.
 
-Correct result: CST Grade appears under the custom category, applies to a clip,
-and the published controls are editable in FCP.
+Correct result: FCP Plasma Grader appears under the custom category, applies to
+a clip, and the published controls are editable in FCP without Motion or Xcode.
 
-Failure caught: missing `.moef` template, wrong Motion template folder/category,
-FCP cache not restarted, or a raw FxPlug registration being mistaken for an
-Effects-browser template.
+Failure caught: missing or incompatible generated `.moef`, wrong template
+folder/category, an unserializable custom LUT default, FCP cache not restarted,
+or a raw FxPlug registration being mistaken for an Effects-browser template.
 
 ## 5. Numerical transfer-function reference check
 
@@ -300,7 +302,7 @@ observed FCP behaviour.
 
 ## 12. Tiling, proxy, and non-square-pixel behaviour
 
-Action: in Motion and FCP, test the same effect at full and proxy resolution,
+Action: in FCP, test the same effect at full and proxy resolution,
 with a small viewer/timeline tile, with a non-square-pixel source, and with
 fields if the host exposes that setting. Also render a frame where the source
 and destination tile origins are not zero.
@@ -344,7 +346,7 @@ parameter retrieval at the wrong time.
 
 Action:
 
-1. Open the LUT Library control in Motion’s inspector.
+1. Open the LUT Library control in FCP’s inspector.
 2. Confirm the compact view shows `No LUT`, a readable summary, previous/next
    buttons, and a clearly labeled **LUT Library…** button within the normal
    inspector width.
@@ -463,8 +465,8 @@ render pass.
 
 Action:
 
-1. Select a LUT, add it to a collection, favorite it, save a Motion/FCP
-   project, quit both hosts, and reopen the project.
+1. Select a LUT, add it to a collection, favorite it, save an FCP
+   project, quit FCP, and reopen the project.
 2. Move or rename the source `.cube` file, then reopen the browser and render.
 3. Restore the file or use the browser’s import path to create a new selection.
 
