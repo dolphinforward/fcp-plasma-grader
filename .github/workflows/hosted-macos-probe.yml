@@ -1,0 +1,55 @@
+name: Hosted macOS build probe
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    if: github.actor == github.repository_owner
+    runs-on: macos-15-intel
+    timeout-minutes: 10
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Inspect hosted Intel toolchain
+        shell: bash
+        run: |
+          set -euo pipefail
+          {
+            echo "Hardware architecture: $(uname -m)"
+            echo "macOS version: $(sw_vers -productVersion)"
+            echo
+            xcodebuild -version
+            echo
+            xcrun --sdk macosx --show-sdk-path
+            echo "macOS SDK version: $(xcrun --sdk macosx --show-sdk-version)"
+            echo "Metal compiler: $(xcrun --find metal 2>/dev/null || echo unavailable)"
+            echo
+            echo "Installed Xcode applications:"
+            find /Applications -maxdepth 1 -type d -name 'Xcode*.app' -print | sort
+            echo
+            echo "FxPlug/PluginManager files provided by the runner:"
+            find /Applications /Library -maxdepth 8 \
+              \( -name 'FxPlug.sdk' -o -name 'FxPlug.framework' -o -name 'PluginManager.framework' \) \
+              -print 2>/dev/null | sort || true
+          } | tee hosted-macos-probe.txt
+
+      - name: Check project without building
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 tools/verify_project.py
+          xcodebuild -project CSTGrade.xcodeproj -scheme CSTGrade -list \
+            | tee -a hosted-macos-probe.txt
+
+      - name: Upload probe report
+        uses: actions/upload-artifact@v4
+        with:
+          name: hosted-macos-probe-${{ github.run_id }}
+          path: hosted-macos-probe.txt
+          if-no-files-found: error
+          retention-days: 7
