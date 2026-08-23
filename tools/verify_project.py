@@ -217,6 +217,8 @@ def main() -> int:
         list((ROOT / "CSTGrade").glob("*.swift"))
         + list((ROOT / "CSTGradeXPC").glob("*.swift"))
         + list((ROOT / "CSTGradeXPC").glob("*.metal"))
+        + list((ROOT / "CSTGradeXPC").glob("*.m"))
+        + list((ROOT / "CSTGradeXPC").glob("*.h"))
     )
     for source_file in source_files:
         check(source_file.name in project, f"Xcode project does not reference {source_file.name}")

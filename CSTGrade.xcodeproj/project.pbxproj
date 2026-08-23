@@ -24,6 +24,8 @@
 		A10000000000000000000009 /* PluginManager.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B10000000000000000000009 /* PluginManager.framework */; };
 		A1000000000000000000000A /* Metal.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B1000000000000000000000A /* Metal.framework */; };
 		A1000000000000000000000D /* CSTGradeXPC.pluginkit in Embed PlugIn */ = {isa = PBXBuildFile; fileRef = B1000000000000000000000D /* CSTGradeXPC.pluginkit */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
+		A10000000000000000000014 /* CSTLUTSelection.m in XPC Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000017 /* CSTLUTSelection.m */; };
+		A10000000000000000000015 /* CSTLUTSelection.m in Wrapper Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000017 /* CSTLUTSelection.m */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -69,6 +71,9 @@
 		B10000000000000000000013 /* CSTLUTLibrary.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CSTLUTLibrary.swift; sourceTree = "<group>"; };
 		B10000000000000000000014 /* CSTLUTLibraryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CSTLUTLibraryView.swift; sourceTree = "<group>"; };
 		B10000000000000000000015 /* CSTGradeError.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CSTGradeError.swift; sourceTree = "<group>"; };
+		B10000000000000000000016 /* CSTLUTSelection.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = CSTLUTSelection.h; sourceTree = "<group>"; };
+		B10000000000000000000017 /* CSTLUTSelection.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = CSTLUTSelection.m; sourceTree = "<group>"; };
+		B10000000000000000000018 /* CSTGrade-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "CSTGrade-Bridging-Header.h"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -120,6 +125,9 @@
 				B10000000000000000000005 /* CSTUniforms.swift */,
 				B10000000000000000000006 /* CSTGradePlugIn.swift */,
 				B10000000000000000000015 /* CSTGradeError.swift */,
+				B10000000000000000000016 /* CSTLUTSelection.h */,
+				B10000000000000000000017 /* CSTLUTSelection.m */,
+				B10000000000000000000018 /* CSTGrade-Bridging-Header.h */,
 				B10000000000000000000013 /* CSTLUTLibrary.swift */,
 				B10000000000000000000014 /* CSTLUTLibraryView.swift */,
 				B10000000000000000000007 /* CSTShaders.metal */,
@@ -263,6 +271,7 @@
 				A10000000000000000000011 /* CSTGradeError.swift in Wrapper Sources */,
 				A10000000000000000000012 /* CSTLUTLibrary.swift in Wrapper Sources */,
 				A10000000000000000000013 /* CSTLUTLibraryView.swift in Wrapper Sources */,
+				A10000000000000000000015 /* CSTLUTSelection.m in Wrapper Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -278,6 +287,7 @@
 				A10000000000000000000010 /* CSTGradeError.swift in XPC Sources */,
 				A1000000000000000000000E /* CSTLUTLibrary.swift in Sources */,
 				A1000000000000000000000F /* CSTLUTLibraryView.swift in Sources */,
+				A10000000000000000000014 /* CSTLUTSelection.m in XPC Sources */,
 				A10000000000000000000007 /* CSTShaders.metal in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -359,6 +369,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.example.cstgrade;
 				PRODUCT_NAME = CSTGrade;
 				SWIFT_INCLUDE_PATHS = "$(SRCROOT)/Modules";
+				SWIFT_OBJC_BRIDGING_HEADER = "CSTGradeXPC/CSTGrade-Bridging-Header.h";
 				WRAPPER_EXTENSION = fxplug;
 			};
 			name = Debug;
@@ -371,6 +382,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.example.cstgrade;
 				PRODUCT_NAME = CSTGrade;
 				SWIFT_INCLUDE_PATHS = "$(SRCROOT)/Modules";
+				SWIFT_OBJC_BRIDGING_HEADER = "CSTGradeXPC/CSTGrade-Bridging-Header.h";
 				WRAPPER_EXTENSION = fxplug;
 			};
 			name = Release;
@@ -379,12 +391,17 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				INFOPLIST_FILE = CSTGradeXPC/Info.plist;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"CST_GRADE_XPC=1",
+				);
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @loader_path/../Frameworks";
 				PRODUCT_BUNDLE_IDENTIFIER = com.example.cstgrade.xpc;
 				PRODUCT_NAME = CSTGradeXPC;
 				SKIP_INSTALL = YES;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = CST_GRADE_XPC;
 				SWIFT_INCLUDE_PATHS = "$(SRCROOT)/Modules";
+				SWIFT_OBJC_BRIDGING_HEADER = "CSTGradeXPC/CSTGrade-Bridging-Header.h";
 				WRAPPER_EXTENSION = pluginkit;
 			};
 			name = Debug;
@@ -393,12 +410,17 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				INFOPLIST_FILE = CSTGradeXPC/Info.plist;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"CST_GRADE_XPC=1",
+				);
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @loader_path/../Frameworks";
 				PRODUCT_BUNDLE_IDENTIFIER = com.example.cstgrade.xpc;
 				PRODUCT_NAME = CSTGradeXPC;
 				SKIP_INSTALL = YES;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = CST_GRADE_XPC;
 				SWIFT_INCLUDE_PATHS = "$(SRCROOT)/Modules";
+				SWIFT_OBJC_BRIDGING_HEADER = "CSTGradeXPC/CSTGrade-Bridging-Header.h";
 				WRAPPER_EXTENSION = pluginkit;
 			};
 			name = Release;
