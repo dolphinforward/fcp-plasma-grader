@@ -11,6 +11,7 @@ template_parent="$HOME/Movies/Motion Templates.localized/Effects.localized/FCP P
 template_destination="$template_parent/FCP Plasma Grader"
 fcp_app="/Applications/Final Cut Pro.app"
 fcp_info="$fcp_app/Contents/Info.plist"
+fcp_executable="$fcp_app/Contents/MacOS/Final Cut Pro"
 fcp_frameworks="$fcp_app/Contents/Frameworks"
 stamp="$(date +%Y%m%d-%H%M%S)-$$"
 plugin_stage="$plugin_parent/.CSTGrade.fxplug.install-$stamp"
@@ -42,6 +43,7 @@ test -f "$plugin_source/Contents/Info.plist" || fail "CSTGrade.fxplug is incompl
 test -f "$template_source/FCP Plasma Grader.moef" || fail "The Final Cut effect template is missing."
 test -d "$fcp_app" || fail "Final Cut Pro is not installed in /Applications."
 test -f "$fcp_info" || fail "Final Cut Pro's version information is missing."
+test -f "$fcp_executable" || fail "Final Cut Pro's executable is missing."
 
 fcp_version="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$fcp_info" 2>/dev/null || true)"
 test "$fcp_version" = "10.6.5" || fail "This compatibility build requires Final Cut Pro 10.6.5; found ${fcp_version:-an unknown version}."
@@ -50,11 +52,50 @@ test "$fcp_version" = "10.6.5" || fail "This compatibility build requires Final 
 # binaries are deliberately absent from the release. Use the framework version
 # already shipped with the user's signed FCP 10.6.5 app so the XPC runtime and
 # host are the same legacy generation. The source application is never changed.
-/usr/bin/codesign --verify --deep --strict "$fcp_app" || fail "Final Cut Pro's Apple code signature did not verify."
-for framework in FxPlug.framework PluginManager.framework; do
-  test -d "$fcp_frameworks/$framework" || fail "$framework is missing from Final Cut Pro 10.6.5."
-  /usr/bin/codesign --verify --strict "$fcp_frameworks/$framework" || fail "$framework in Final Cut Pro did not verify."
-done
+#
+# Verify only the executable and two frameworks used by this installer. A deep
+# check of the whole FCP bundle also validates unrelated codecs, Compressor, and
+# localized Create Disc resources. Some otherwise-working legacy App Store
+# copies have had unused localization files removed, which must not hide the
+# validity of the exact Apple-signed code copied here.
+#
+# "anchor apple generic" is the correct certificate anchor for Mac App Store
+# code. The Mac App Store leaf OID, exact code identifiers, and matching team
+# identifiers prevent an ad-hoc or unrelated Apple-issued signature from being
+# accepted.
+fcp_signing_team=""
+verify_fcp_component() {
+  local component="$1"
+  local identifier="$2"
+  local label="$3"
+  local requirement
+  local details
+  local team
+
+  requirement="anchor apple generic and identifier \"$identifier\" and certificate leaf[field.1.2.840.113635.100.6.1.9] exists"
+  /usr/bin/codesign --verify --strict --verbose=2 -R="$requirement" "$component" \
+    || fail "$label is not an intact Apple Mac App Store component."
+
+  details="$(/usr/bin/codesign -dv --verbose=4 "$component" 2>&1)" \
+    || fail "Could not inspect $label's signing identity."
+  team="$(printf '%s\n' "$details" | /usr/bin/sed -n 's/^TeamIdentifier=//p')"
+  test -n "$team" || fail "$label has no code-signing team identifier."
+
+  if test -z "$fcp_signing_team"; then
+    fcp_signing_team="$team"
+  else
+    test "$team" = "$fcp_signing_team" \
+      || fail "$label is signed by a different team than Final Cut Pro."
+  fi
+}
+
+verify_fcp_component "$fcp_executable" "com.apple.FinalCut" "Final Cut Pro"
+
+test -d "$fcp_frameworks/FxPlug.framework" || fail "FxPlug.framework is missing from Final Cut Pro 10.6.5."
+verify_fcp_component "$fcp_frameworks/FxPlug.framework" "com.apple.fxplugframework" "FxPlug.framework"
+
+test -d "$fcp_frameworks/PluginManager.framework" || fail "PluginManager.framework is missing from Final Cut Pro 10.6.5."
+verify_fcp_component "$fcp_frameworks/PluginManager.framework" "com.apple.PluginManager" "PluginManager.framework"
 
 /bin/mkdir -p "$plugin_parent" "$template_parent" "$HOME/.Trash"
 /bin/rm -rf "$plugin_stage" "$template_stage"

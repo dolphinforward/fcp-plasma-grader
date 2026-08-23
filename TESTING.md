@@ -17,6 +17,15 @@ For every visual test, also inspect the Console output and the FCP render
 quality being used. A failed registration/API test should be fixed before
 interpreting colour results.
 
+Before the installer test, its three scoped signature checks should report
+`valid on disk`, `satisfies its Designated Requirement`, and `explicit
+requirement satisfied` for the FCP executable, `FxPlug.framework`, and
+`PluginManager.framework`. All three must report one matching `TeamIdentifier`.
+The installer should still succeed if a whole-app `codesign --deep` diagnostic
+fails only for an unrelated missing Compressor localization resource; it must
+fail before changing a destination if any of the three required components has
+the wrong identifier, certificate class, team, or content signature.
+
 ## 1. Build configuration and architecture
 
 Action:

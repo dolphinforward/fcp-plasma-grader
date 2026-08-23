@@ -396,10 +396,20 @@ def main() -> int:
         'test "$fcp_version" = "10.6.5"',
         'FxPlug.framework',
         'PluginManager.framework',
-        'codesign --verify --deep --strict "$fcp_app"',
+        'anchor apple generic',
+        'certificate leaf[field.1.2.840.113635.100.6.1.9] exists',
+        'verify_fcp_component "$fcp_executable" "com.apple.FinalCut"',
+        'verify_fcp_component "$fcp_frameworks/FxPlug.framework" "com.apple.fxplugframework"',
+        'verify_fcp_component "$fcp_frameworks/PluginManager.framework" "com.apple.PluginManager"',
+        'TeamIdentifier=',
         'pluginkit -a',
     ]:
         check(marker in installer, f"installer is missing required behavior: {marker}")
+
+    check(
+        'codesign --verify --deep --strict "$fcp_app"' not in installer,
+        "installer must not reject usable FCP code because of unrelated deep-bundle resources",
+    )
 
     for marker in [
         'original_minimums != {"13.0"}',

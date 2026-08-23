@@ -44,9 +44,11 @@ The hosted workflow uses 4.3.4 as follows:
    metadata to 11.0.
 4. Compile an Intel-only plug-in with a macOS 11.0 deployment target.
 5. Assert that neither Ventura-only runtime framework is embedded.
-6. Package the plug-in with an installer that verifies the user's signed Final
-   Cut Pro 10.6.5 application and copies its matching FxPlug and PluginManager
-   frameworks into the staged plug-in before ad-hoc signing it.
+6. Package the plug-in with an installer that verifies the expected Apple Mac
+   App Store identities of the FCP 10.6.5 executable and its matching FxPlug
+   and PluginManager frameworks, then copies those frameworks into the staged
+   plug-in before ad-hoc signing it. The check is intentionally scoped to code
+   the installer consumes rather than unrelated nested FCP resources.
 
 Final Cut Pro itself is never modified. This bridge avoids redistributing an
 incompatible runtime and keeps the plug-in runtime in the same generation as

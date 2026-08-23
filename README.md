@@ -354,10 +354,18 @@ FRAMEWORK_SEARCH_PATHS = /Library/Developer/SDKs/FxPlug.sdk/Library/Frameworks $
 The module maps and Xcode framework references use the sparse-SDK paths under
 `/Library/Developer/SDKs/FxPlug.sdk/Library/Frameworks`. The project does not
 copy developer runtime frameworks into the built product. At installation, the
-compatibility installer verifies the signed Final Cut Pro 10.6.5 application,
-copies that host's matching `FxPlug.framework` and `PluginManager.framework`
-into a staged plug-in, and ad-hoc signs the staged copy. Final Cut Pro itself is
-read-only throughout this process.
+compatibility installer verifies the Apple Mac App Store signatures, exact code
+identifiers, and matching signing-team identities of Final Cut Pro 10.6.5's
+executable, `FxPlug.framework`, and `PluginManager.framework`. It copies those
+matching frameworks into a staged plug-in and ad-hoc signs the staged copy.
+Final Cut Pro itself is read-only throughout this process.
+
+The installer deliberately does not run a deep signature check across unrelated
+FCP codecs, Compressor helpers, or localized disc-authoring resources. Such a
+check can reject an otherwise usable legacy FCP copy after an unused language
+resource was removed, even though every executable/framework consumed by this
+installer remains intact and App Store signed. Any failure in the three required
+components still stops installation before a destination is changed.
 
 The source deliberately uses only APIs available on the macOS 11 deployment
 floor. It does not call macOS 12/13/14-only APIs, use OpenGL/OpenCL, or emit an
@@ -418,10 +426,12 @@ copies to Trash as timestamped backups:
 ```
 
 Before replacing anything, it requires `/Applications/Final Cut Pro.app` to be
-version 10.6.5, verifies the app and its two FxPlug runtime frameworks with
-macOS `codesign`, copies those frameworks into the staged plug-in, and signs the
-completed staged bundle. It never writes inside the Final Cut Pro application.
-No Xcode, Command Line Tools, or Motion installation is involved. To diagnose
+version 10.6.5. It uses macOS `codesign` to require the expected identifiers and
+Apple Mac App Store certificate class for the FCP executable and its two FxPlug
+runtime frameworks, and requires all three to have the same signing Team ID.
+It then copies the frameworks into the staged plug-in and signs the completed
+staged bundle. It never writes inside the Final Cut Pro application. No Xcode,
+Command Line Tools, or Motion installation is involved. To diagnose
 registration, run:
 
 ```sh
