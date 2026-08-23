@@ -40,8 +40,7 @@ enum CSTLUTOrganizerBridge {
         DistributedNotificationCenter.default().post(
             name: notificationName,
             object: nil,
-            userInfo: ["request": requestToken, "selection": archived],
-            deliverImmediately: true
+            userInfo: ["request": requestToken, "selection": archived]
         )
     }
 
