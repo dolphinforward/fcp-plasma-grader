@@ -91,31 +91,34 @@ private final class CSTMetalResources {
     }
 
     private func makeTexture(for parsed: CSTParsedLUT) throws -> MTLTexture {
-        let descriptor = MTLTextureDescriptor.texture3DDescriptor(
-            pixelFormat: .rgba32Float,
-            width: parsed.dimension,
-            height: parsed.dimension,
-            depth: parsed.dimension,
-            mipmapped: false
-        )
-        descriptor.usage = .shaderRead
+        let descriptor = MTLTextureDescriptor()
+        descriptor.textureType = MTLTextureType.type3D
+        descriptor.pixelFormat = MTLPixelFormat.rgba32Float
+        descriptor.width = parsed.dimension
+        descriptor.height = parsed.dimension
+        descriptor.depth = parsed.dimension
+        descriptor.mipmapLevelCount = 1
+        descriptor.usage = MTLTextureUsage.shaderRead
         guard let texture = device.makeTexture(descriptor: descriptor) else {
             throw CSTGradeError("Could not allocate the LUT 3D Metal texture")
         }
         let values = parsed.rgbaFloatValues()
+        let bytesPerPixel = 4 * MemoryLayout<Float>.stride
+        let bytesPerRow = parsed.dimension * bytesPerPixel
+        let bytesPerImage = parsed.dimension * bytesPerRow
         let region = MTLRegion(
             origin: MTLOrigin(x: 0, y: 0, z: 0),
             size: MTLSize(width: parsed.dimension, height: parsed.dimension, depth: parsed.dimension)
         )
-        values.withUnsafeBytes { bytes in
-            guard let baseAddress = bytes.baseAddress else { return }
+        values.withUnsafeBufferPointer { buffer in
+            guard let baseAddress = buffer.baseAddress else { return }
             texture.replace(
                 region: region,
                 mipmapLevel: 0,
                 slice: 0,
-                withBytes: baseAddress,
-                bytesPerRow: parsed.dimension * 4 * MemoryLayout<Float>.size,
-                bytesPerImage: parsed.dimension * parsed.dimension * 4 * MemoryLayout<Float>.size
+                withBytes: UnsafeRawPointer(baseAddress),
+                bytesPerRow: bytesPerRow,
+                bytesPerImage: bytesPerImage
             )
         }
         return texture
@@ -537,10 +540,9 @@ final class CSTGradePlugIn: NSObject, FxTileableEffect, FxCustomParameterViewHos
 
     func classes(forCustomParameterID parameterID: UInt32) -> Set<AnyHashable> {
         guard parameterID == CSTParameterID.lutSelection else { return [] }
-        // UNVERIFIED: FxPlug.framework declares this as Set<AnyHashable> in
-        // the Swift importer but the Objective-C API is NSSet<Class>. Confirm
-        // this bridge against the installed SDK if Xcode rejects the cast.
-        return Set<AnyHashable>([CSTLUTSelection.self as AnyHashable])
+        // Keep NSSet<Class> creation on the Objective-C side so the class
+        // object crosses Foundation's Set<AnyHashable> bridge intact.
+        return CSTLUTSelection.allowedClasses()
     }
 
     func parameterChanged(_ paramID: UInt32, at time: CMTime) throws {
@@ -687,7 +689,7 @@ final class CSTGradePlugIn: NSObject, FxTileableEffect, FxCustomParameterViewHos
               let settingAPI = apiManager.api(for: FxParameterSettingAPI_v5.self)
                 as? FxParameterSettingAPI_v5 else { return }
         let actionSender: Any = sender ?? self
-        let time = actionAPI.currentTime
+        let time = actionAPI.currentTime()
         actionAPI.startAction(actionSender)
         _ = settingAPI.setCustomParameterValue(
             selection,
@@ -711,7 +713,7 @@ final class CSTGradePlugIn: NSObject, FxTileableEffect, FxCustomParameterViewHos
               let settingAPI = apiManager.api(for: FxParameterSettingAPI_v5.self)
                 as? FxParameterSettingAPI_v5 else { return }
         let actionSender: Any = sender ?? self
-        let time = actionAPI.currentTime
+        let time = actionAPI.currentTime()
         actionAPI.startAction(actionSender)
 
         func setBool(_ id: UInt32, _ value: Bool) {
@@ -783,9 +785,6 @@ final class CSTGradePlugIn: NSObject, FxTileableEffect, FxCustomParameterViewHos
             kFxPropertyKey_VariesWhenParamsAreStatic: NSNumber(booleanLiteral: false),
             kFxPropertyKey_ChangesOutputSize: NSNumber(booleanLiteral: false),
             kFxPropertyKey_PixelTransformSupport: NSNumber(value: kFxPixelTransform_ScaleTranslate),
-            // A colour transform is independent of pixel position; the host
-            // need not ask us to apply a geometric pixel transform.
-            kFxPropertyKey_PixelIndependent: NSNumber(booleanLiteral: true),
             kFxPropertyKey_DesiredProcessingColorInfo: NSNumber(value: kFxImageColorInfo_RGB_GAMMA_VIDEO)
         ]
         properties?.pointee = NSDictionary(dictionary: values)
@@ -801,12 +800,14 @@ final class CSTGradePlugIn: NSObject, FxTileableEffect, FxCustomParameterViewHos
         withPluginState pluginState: Data?,
         at renderTime: CMTime
     ) throws {
-        let request = FxImageTileRequest(
+        guard let request = FxImageTileRequest(
             source: kFxImageTileRequestSourceEffectClip,
             time: renderTime,
             includeFilters: true,
             parameterID: 0
-        )
+        ) else {
+            throw CSTGradeError("Could not create the source-frame request")
+        }
         inputImageRequests?.pointee = NSArray(object: request)
     }
 
@@ -1181,7 +1182,7 @@ final class CSTGradePlugIn: NSObject, FxTileableEffect, FxCustomParameterViewHos
             throw CSTGradeError("CST Grade plugin state has the wrong size")
         }
         var result = CSTUniforms()
-        withUnsafeMutableBytes(of: &result) { destination in
+        _ = withUnsafeMutableBytes(of: &result) { destination in
             data.copyBytes(to: destination, count: MemoryLayout<CSTUniforms>.stride)
         }
         return result

@@ -28,6 +28,7 @@ NS_ASSUME_NONNULL_BEGIN
 @property(nonatomic, copy, readonly, nullable) NSData *bookmarkData;
 
 + (instancetype)none;
++ (NSSet<Class> *)allowedClasses;
 
 - (instancetype)initWithIdentifier:(uint64_t)identifier
                        displayName:(NSString *)displayName

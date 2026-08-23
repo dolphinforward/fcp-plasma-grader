@@ -24,6 +24,11 @@ static NSString *const CSTBookmarkDataKey = @"bookmarkData";
                               bookmarkData:nil];
 }
 
++ (NSSet<Class> *)allowedClasses
+{
+    return [NSSet setWithObject:self];
+}
+
 - (instancetype)initWithIdentifier:(uint64_t)identifier
                        displayName:(NSString *)displayName
                         sourcePath:(NSString *)sourcePath
