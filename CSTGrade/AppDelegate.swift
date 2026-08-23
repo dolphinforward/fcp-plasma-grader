@@ -19,11 +19,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         showOrganizer()
     }
 
-    func application(_ application: NSApplication, open urls: [URL]) -> Bool {
+    func application(_ application: NSApplication, open urls: [URL]) {
         for url in urls where url.scheme == CSTLUTOrganizerBridge.urlScheme {
             let components = URLComponents(url: url, resolvingAgainstBaseURL: false)
-            requestToken = components?.queryItems?.first(where: { $0.name == "request" })?.value
-            let requestedIdentifier = components?.queryItems
+            let queryItems = components?.queryItems ?? []
+            requestToken = queryItems.first(where: { $0.name == "request" })?.value
+            let requestedIdentifier = queryItems
                 .first(where: { $0.name == "selection" })?.value
                 .flatMap { UInt64($0) }
             CSTLUTLibraryStore.shared.load()
@@ -33,7 +34,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             } ?? .none()
             showOrganizer(selection: requestedSelection)
         }
-        return true
     }
 
     private func showOrganizer(selection: CSTLUTSelection = .none()) {
