@@ -3,8 +3,10 @@
 These tests must be run on the target Intel MacBook Pro with macOS 12 Monterey
 and Final Cut Pro 10.6.5. An end user does not need Xcode, Motion, or the FxPlug
 SDK. Build-only checks may run on GitHub or on the canonical Xcode 14.2/FxPlug
-4.1 development setup. Record the exact OS/FCP/build artifact versions and keep
-one known-good test library before changing the plugin.
+4.1 development setup. The hosted compatibility artifact does not contain the
+newer SDK's macOS 13 runtime frameworks; its installer obtains the matching
+frameworks from the signed FCP 10.6.5 app. Record the exact OS/FCP/build artifact
+versions and keep one known-good test library before changing the plugin.
 
 Before the first launch, confirm that the bundled `.moef` declares
 `<displayversion>5.6.3</displayversion>` and contains neither `DRTSupport` nor
@@ -38,8 +40,9 @@ Correct result:
   signing identity explains the result.
 
 Failure caught: accidental `$(ARCHS_STANDARD)`, an arm64 slice, wrong wrapper
-extension, missing nested XPC service, missing embedded frameworks, or an
-unsigned/partially signed nested bundle.
+extension, missing nested XPC service, or an unsigned/partially signed bundle.
+For the hosted compatibility archive, runtime frameworks are expected only
+after the installer has copied them from FCP 10.6.5 and re-signed the plug-in.
 
 ## 2. PlugInKit discovery
 

@@ -326,10 +326,11 @@ are not required to use it.
 
 There are two developer build routes:
 
-1. **GitHub-hosted build (no local Xcode or Motion):** add the short-lived Apple
-   Developer Downloads cookie described in [GITHUB_BUILD.md](GITHUB_BUILD.md),
-   then run the manual hosted workflow. GitHub supplies the Intel Mac and Xcode;
-   the workflow downloads the SDK directly from Apple and packages the result.
+1. **GitHub-hosted build (no local Xcode, Motion, or Apple cookie):** the owner-
+   only workflow retrieves the user-supplied FxPlug 4.3.4 disk image through a
+   temporary read-only key to a private build-assets repository. It uses the SDK
+   headers for compilation but deliberately excludes its macOS 13-only runtime
+   frameworks. See [GITHUB_BUILD.md](GITHUB_BUILD.md).
 2. **Canonical local build:** use macOS 12 Monterey, Xcode 14.2, and the FxPlug
    4.1 SDK. This is the closest match to the intended Final Cut Pro 10.6.5 host
    and remains the compatibility reference if the newer hosted compiler differs.
@@ -346,21 +347,21 @@ Terminal. This project intentionally uses the required sparse-SDK settings:
 
 ```text
 ADDITIONAL_SDKS = /Library/Developer/SDKs/FxPlug.sdk
-FRAMEWORK_SEARCH_PATHS = /Library/Frameworks $(inherited)
+FRAMEWORK_SEARCH_PATHS = /Library/Developer/SDKs/FxPlug.sdk/Library/Frameworks $(inherited)
 ```
 
-The module maps use the FxPlug 4.1 sparse-SDK header paths under
-`/Library/Developer/SDKs/FxPlug.sdk/Library/Frameworks`. The Xcode framework
-references and copy phase use `/Library/Frameworks`, matching the target
-configuration requirement. If the SDK installer on the target Mac places the
-runtime framework reference somewhere else, resolve that path in Xcode before
-building and keep the required `/Library/Frameworks $(inherited)` search-path
-entry present.
+The module maps and Xcode framework references use the sparse-SDK paths under
+`/Library/Developer/SDKs/FxPlug.sdk/Library/Frameworks`. The project does not
+copy developer runtime frameworks into the built product. At installation, the
+compatibility installer verifies the signed Final Cut Pro 10.6.5 application,
+copies that host's matching `FxPlug.framework` and `PluginManager.framework`
+into a staged plug-in, and ad-hoc signs the staged copy. Final Cut Pro itself is
+read-only throughout this process.
 
 The source deliberately uses only APIs available on the macOS 11 deployment
 floor. It does not call macOS 12/13/14-only APIs, use OpenGL/OpenCL, or emit an
-Apple Silicon slice. The target Mac still has to confirm the exact FxPlug 4.1
-headers and FCP behavior.
+Apple Silicon slice. The target Mac still has to confirm the exact legacy
+runtime API behavior.
 
 ## Build on a local Mac
 
@@ -374,8 +375,8 @@ This is the canonical fallback. Skip it when using the hosted workflow.
    - `EXCLUDED_ARCHS[sdk=macosx*]` contains `arm64`.
    - Deployment Target is `11.0`.
    - `ADDITIONAL_SDKS` is `/Library/Developer/SDKs/FxPlug.sdk`.
-   - Framework Search Paths contains `/Library/Frameworks` followed by
-     `$(inherited)`.
+   - Framework Search Paths contains the sparse SDK's `Library/Frameworks`
+     directory followed by `$(inherited)`.
    - The XPC target’s Wrapper Extension is `pluginkit`.
    - The wrapper target’s Wrapper Extension is `fxplug`.
 4. Choose **Product > Build**. Do not run the wrapper as an ordinary GUI app;
@@ -388,7 +389,9 @@ This is the canonical fallback. Skip it when using the hosted workflow.
 
    `CSTGrade.fxplug/Contents/PlugIns/CSTGradeXPC.pluginkit`
 
-   and the XPC bundle’s embedded `FxPlug.framework` and `PluginManager.framework`.
+   The hosted compatibility product intentionally contains neither
+   `FxPlug.framework` nor `PluginManager.framework`; the installer obtains the
+   matching copies from the signed FCP 10.6.5 app on the target Mac.
 
 If Xcode does not show a shared scheme, choose **Product > Scheme > Manage
 Schemes**, add a scheme for the `CSTGrade` application target, and select the
@@ -411,7 +414,12 @@ copies to Trash as timestamped backups:
 ~/Movies/Motion Templates.localized/Effects.localized/FCP Plasma Grader/FCP Plasma Grader
 ```
 
-No Xcode or Motion installation is involved. To diagnose registration, run:
+Before replacing anything, it requires `/Applications/Final Cut Pro.app` to be
+version 10.6.5, verifies the app and its two FxPlug runtime frameworks with
+macOS `codesign`, copies those frameworks into the staged plug-in, and signs the
+completed staged bundle. It never writes inside the Final Cut Pro application.
+No Xcode, Command Line Tools, or Motion installation is involved. To diagnose
+registration, run:
 
 ```sh
 pluginkit -m -v -p FxPlug | grep CSTGrade
@@ -441,19 +449,21 @@ These are deliberate, visible risk points rather than hidden API guesses:
 
 0. **No successful SDK compile yet.** The public hosted probe confirmed an
    Intel runner, Xcode 16.4, and successful project parsing, but GitHub does not
-   preinstall FxPlug. The first authenticated hosted workflow run must settle
-   source compatibility with that newer compiler and the requested FxPlug 4.1
-   headers. A successful hosted build still does not replace the Monterey/FCP
-   runtime tests.
+   preinstall FxPlug. The first private-input hosted workflow run must settle
+   source compatibility with that newer compiler and FxPlug 4.3.4 headers. Its
+   macOS 13 runtime frameworks are excluded; a successful hosted build still
+   does not replace the Monterey/FCP runtime tests.
    Apple’s current setup documentation names FCP 10.6.6 or newer, while this
    product deliberately targets 10.6.5. The required host interfaces all declare
    FxPlug 4.0 (or earlier) availability, and an exact-era FxPlug template exists,
    but only a 10.6.5 launch/render test can close that older-host gap.
 
-1. **Exact installed SDK layout.** The sparse SDK module maps follow the FxPlug
-   4.1 example layout, but the physical framework symlink location can depend on
-   the SDK installer. Confirm the two absolute framework paths in the target
-   SDK and adjust only the file references if needed.
+1. **Header/runtime generation bridge.** The hosted build compiles against
+   4.3.4 headers after changing only the temporary `.tbd` link-stub deployment
+   metadata. Installation supplies the unmodified runtime frameworks from the
+   signed FCP 10.6.5 app. Confirm the built executable imports only symbols and
+   Objective-C protocols present in that legacy runtime; an install/launch test
+   is mandatory before calling the bridge compatible.
    The XPC plist uses Apple’s documented `_NSApplication` run-loop value; if the
    Xcode 14.2 FxPlug 4.1 example installed on the target uses a different exact
    spelling, copy that SDK example’s value.
@@ -465,11 +475,11 @@ These are deliberate, visible risk points rather than hidden API guesses:
    extension, the header/Apple template result must take precedence; record the
    observed bundle requirement before changing packaging.
 3. **Swift importer spellings.** The source uses the Xcode-era Apple FxPlug
-   examples’ `sourceImageIndex: UInt` and `quality: UInt` spellings. If the
-   installed FxPlug 4.1 header imports either as `Int` or `FxQuality`, change the
-   method declaration to the exact generated protocol signature shown by
-   `FxTileableEffect.h`; the `// UNVERIFIED` points in the source identify this
-   boundary.
+   examples’ `sourceImageIndex: UInt` and `quality: UInt` spellings. The hosted
+   Xcode 16.4/FxPlug 4.3.4 compile must use the exact generated protocol
+   signatures in `FxTileableEffect.h`; the `// UNVERIFIED` points in the source
+   identify this boundary. The exact-era Xcode 14.2/4.1 toolchain remains the
+   comparison if importer behavior differs.
 4. **`FxColorGamutAPI_v2` availability in the exact SDK/FCP pairing.** The wide-
    gamut adapter requests v2 and now fails the frame state rather than silently
    writing an unknown project gamut when the API is unavailable. Confirm the

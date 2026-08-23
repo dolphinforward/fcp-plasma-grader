@@ -15,7 +15,10 @@ The installer changes only these two user-level locations:
     FCP Plasma Grader/FCP Plasma Grader
 
 It does not install Xcode, Motion, a background service, an account, or a
-network dependency. Replaced copies are moved to Trash as timestamped backups.
+network dependency. Before replacing anything, it confirms that the signed app
+at /Applications/Final Cut Pro.app is version 10.6.5 and copies that app's
+matching FxPlug runtime frameworks into the staged plug-in. It never modifies
+Final Cut Pro. Replaced copies are moved to Trash as timestamped backups.
 
 To uninstall, quit Final Cut Pro and double-click
 “Uninstall FCP Plasma Grader.command”. The LUT organizer metadata is retained.

@@ -3,15 +3,6 @@ name: Hosted Intel release build
 on:
   workflow_dispatch:
     inputs:
-      fxplug_sdk_version:
-        description: Apple FxPlug SDK version from Developer Downloads
-        required: true
-        default: "4.1"
-        type: string
-      fxplug_sdk_sha256:
-        description: Optional lowercase SHA-256 for the Apple DMG
-        required: false
-        type: string
       xcode_app:
         description: Preinstalled Xcode application on macos-15-intel
         required: true
@@ -23,15 +14,13 @@ permissions:
 
 jobs:
   build:
-    # The repository is public. Only the owner may pass the short-lived Apple
-    # download cookie to an SDK installation/build job.
+    # The repository is public. Only the owner may pass the temporary read-only
+    # deploy key that can clone the private SDK input repository.
     if: github.actor == github.repository_owner
     runs-on: macos-15-intel
     timeout-minutes: 30
     env:
-      ADC_DOWNLOAD_AUTH: ${{ secrets.ADC_DOWNLOAD_AUTH }}
-      FXPLUG_SDK_VERSION: ${{ inputs.fxplug_sdk_version }}
-      FXPLUG_SDK_SHA256: ${{ inputs.fxplug_sdk_sha256 }}
+      PRIVATE_ASSET_DEPLOY_KEY: ${{ secrets.PRIVATE_ASSET_DEPLOY_KEY }}
       XCODE_APP: ${{ inputs.xcode_app }}
     steps:
       - name: Check out source
@@ -43,39 +32,38 @@ jobs:
           set -euo pipefail
           test "$(uname -m)" = "x86_64"
           test -d "$XCODE_APP/Contents/Developer"
-          [[ "$FXPLUG_SDK_VERSION" =~ ^[0-9]+\.[0-9]+(\.[0-9]+)?$ ]]
-          if test -n "$FXPLUG_SDK_SHA256"; then
-            [[ "$FXPLUG_SDK_SHA256" =~ ^[0-9a-f]{64}$ ]]
-          fi
-          if test -z "$ADC_DOWNLOAD_AUTH"; then
-            echo "::error::Repository secret ADC_DOWNLOAD_AUTH is missing. Sign in to Apple Developer Downloads and save the ADCDownloadAuth cookie value as that Actions secret."
+          if test -z "$PRIVATE_ASSET_DEPLOY_KEY"; then
+            echo "::error::Temporary repository secret PRIVATE_ASSET_DEPLOY_KEY is missing."
             exit 1
           fi
           export DEVELOPER_DIR="$XCODE_APP/Contents/Developer"
           xcodebuild -version
           python3 tools/verify_project.py
 
-      - name: Download and install Apple FxPlug SDK
+      - name: Retrieve and install private Apple FxPlug SDK input
         shell: bash
         run: |
           set -euo pipefail
-          sdk_dmg="$RUNNER_TEMP/FxPlug_SDK_${FXPLUG_SDK_VERSION}.dmg"
-          sdk_url="https://download.developer.apple.com/Developer_Tools/FxPlug_SDK_${FXPLUG_SDK_VERSION}/FxPlug_SDK_${FXPLUG_SDK_VERSION}.dmg"
-          curl \
-            --fail \
-            --location \
-            --retry 3 \
-            --silent \
-            --show-error \
-            --referer "https://developer.apple.com/" \
-            --user-agent "Mozilla/5.0" \
-            --cookie "ADCDownloadAuth=${ADC_DOWNLOAD_AUTH}" \
-            "$sdk_url" \
-            --output "$sdk_dmg"
+          asset_checkout="$RUNNER_TEMP/private-build-assets"
+          key_path="$RUNNER_TEMP/private-build-assets-key"
+          /usr/bin/install -m 600 /dev/null "$key_path"
+          printf '%s\n' "$PRIVATE_ASSET_DEPLOY_KEY" > "$key_path"
+          cleanup_key() {
+            /bin/rm -f "$key_path"
+          }
+          trap cleanup_key EXIT
+          GIT_SSH_COMMAND="ssh -i $key_path -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new" \
+            git clone --depth 1 \
+              git@github.com:dolphinforward/fcp-plasma-grader-build-assets.git \
+              "$asset_checkout"
+          cleanup_key
+          trap - EXIT
 
-          if test -n "$FXPLUG_SDK_SHA256"; then
-            echo "$FXPLUG_SDK_SHA256  $sdk_dmg" | shasum -a 256 --check
-          fi
+          (cd "$asset_checkout" && shasum -a 256 --check SHA256SUMS.txt)
+          sdk_dmg="$RUNNER_TEMP/FxPlug_SDK_4.3.4.dmg"
+          /bin/cp "$asset_checkout/FxPlug_SDK_4.3.4.dmg" "$sdk_dmg"
+          test "$(shasum -a 256 "$sdk_dmg" | awk '{print $1}')" = \
+            "47f43137cf7ddff275b22c9f41a0545258ca574f77f9fbce9b40e8055b1c565b"
           hdiutil verify "$sdk_dmg"
 
           mount_point="$RUNNER_TEMP/FxPlugSDKMount"
@@ -94,8 +82,26 @@ jobs:
           trap - EXIT
 
           test -d /Library/Developer/SDKs/FxPlug.sdk
-          test -d /Library/Frameworks/FxPlug.framework
-          test -d /Library/Frameworks/PluginManager.framework
+          runtime_root=/Library/Developer/Frameworks
+          test -d "$runtime_root/FxPlug.framework"
+          test -d "$runtime_root/PluginManager.framework"
+          codesign --verify --deep --strict "$runtime_root/FxPlug.framework"
+          codesign --verify --deep --strict "$runtime_root/PluginManager.framework"
+
+          runtime_minos() {
+            otool -l "$1" | awk '
+              $1 == "cmd" && $2 == "LC_BUILD_VERSION" { build = 1; next }
+              build && $1 == "minos" { print $2; exit }
+            '
+          }
+          test "$(runtime_minos "$runtime_root/FxPlug.framework/Versions/A/FxPlug")" = "13.0"
+          test "$(runtime_minos "$runtime_root/PluginManager.framework/Versions/B/PluginManager")" = "13.0"
+
+          # Patch only the ephemeral text-based link stubs. The signed macOS 13
+          # runtime binaries above are never patched or placed in the release.
+          sudo python3 tools/prepare_legacy_fxplug_sdk.py \
+            --sdk /Library/Developer/SDKs/FxPlug.sdk \
+            --target-minimum 11.0
 
       - name: Build x86_64 Monterey-compatible bundle
         id: build
@@ -132,10 +138,11 @@ jobs:
           test -f "$service_bundle/Contents/Resources/default.metallib"
           test "$(lipo -archs "$wrapper")" = "x86_64"
           test "$(lipo -archs "$service")" = "x86_64"
+          test ! -e "$service_bundle/Contents/Frameworks/FxPlug.framework"
+          test ! -e "$service_bundle/Contents/Frameworks/PluginManager.framework"
+          otool -L "$service" | grep -F '@rpath/FxPlug.framework/Versions/A/FxPlug'
+          otool -L "$service" | grep -F '@rpath/PluginManager.framework/Versions/B/PluginManager'
 
-          while IFS= read -r framework; do
-            codesign --force --sign - --timestamp=none "$framework"
-          done < <(find "$service_bundle/Contents/Frameworks" -maxdepth 1 -type d -name '*.framework' -print | sort)
           codesign --force --sign - --timestamp=none "$service_bundle"
           codesign --force --sign - --timestamp=none "$bundle"
           codesign --verify --deep --strict --verbose=2 "$bundle"

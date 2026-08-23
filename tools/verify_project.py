@@ -170,6 +170,7 @@ def main() -> int:
     lut_source = read("CSTGradeXPC/CSTLUTLibrary.swift")
     self_hosted_workflow = read(".github/workflows/build-self-hosted.yml")
     hosted_workflow = read(".github/workflows/build-hosted.yml")
+    legacy_sdk_helper = read("tools/prepare_legacy_fxplug_sdk.py")
     installer = read("Distribution/Install FCP Plasma Grader.command")
     readme = read("README.md")
     testing = read("TESTING.md")
@@ -194,7 +195,7 @@ def main() -> int:
         'ADDITIONAL_SDKS = "/Library/Developer/SDKs/FxPlug.sdk";',
         "ARCHS = x86_64;",
         '"EXCLUDED_ARCHS[sdk=macosx*]" = arm64;',
-        '"/Library/Frameworks",',
+        '"/Library/Developer/SDKs/FxPlug.sdk/Library/Frameworks",',
         "MACOSX_DEPLOYMENT_TARGET = 11.0;",
         "ONLY_ACTIVE_ARCH = NO;",
         "WRAPPER_EXTENSION = fxplug;",
@@ -203,6 +204,7 @@ def main() -> int:
     for setting in required_build_settings:
         check(setting in project, f"project is missing required build setting: {setting}")
     check("ARCHS_STANDARD" not in project, "project must not use ARCHS_STANDARD")
+    check("in Copy Frameworks" not in project, "newer SDK runtime frameworks must not be embedded")
     check(project.count("kernel void") == 0, "Metal kernels do not belong in the project file")
     check("workflow_dispatch:" in self_hosted_workflow, "self-hosted build must remain manually dispatched")
     check("pull_request:" not in self_hosted_workflow, "public pull requests must never reach the self-hosted runner")
@@ -375,8 +377,10 @@ def main() -> int:
     for marker in [
         'runs-on: macos-15-intel',
         'if: github.actor == github.repository_owner',
-        'secrets.ADC_DOWNLOAD_AUTH',
-        'https://download.developer.apple.com/Developer_Tools/FxPlug_SDK_',
+        'secrets.PRIVATE_ASSET_DEPLOY_KEY',
+        'dolphinforward/fcp-plasma-grader-build-assets.git',
+        '47f43137cf7ddff275b22c9f41a0545258ca574f77f9fbce9b40e8055b1c565b',
+        'tools/prepare_legacy_fxplug_sdk.py',
         'ARCHS=x86_64',
         'MACOSX_DEPLOYMENT_TARGET=11.0',
         'Distribution/Motion Templates.localized',
@@ -386,9 +390,22 @@ def main() -> int:
         '$HOME/Library/Plug-Ins/FxPlug',
         '$HOME/Movies/Motion Templates.localized/Effects.localized/FCP Plasma Grader',
         'pgrep -x "Final Cut Pro"',
+        '/Applications/Final Cut Pro.app',
+        'test "$fcp_version" = "10.6.5"',
+        'FxPlug.framework',
+        'PluginManager.framework',
+        'codesign --verify --deep --strict "$fcp_app"',
         'pluginkit -a',
     ]:
         check(marker in installer, f"installer is missing required behavior: {marker}")
+
+    for marker in [
+        'original_minimums != {"13.0"}',
+        '"x86_64-macos", "arm64-macos"',
+        'entry["min_deployment"] = target_minimum',
+        "It does not patch, copy, or weaken",
+    ]:
+        check(marker in legacy_sdk_helper, f"legacy SDK helper is missing safeguard: {marker}")
 
     for marker in [
         "FCP Plasma Grader",

@@ -23,8 +23,6 @@
 		A10000000000000000000008 /* FxPlug.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B10000000000000000000008 /* FxPlug.framework */; };
 		A10000000000000000000009 /* PluginManager.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B10000000000000000000009 /* PluginManager.framework */; };
 		A1000000000000000000000A /* Metal.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B1000000000000000000000A /* Metal.framework */; };
-		A1000000000000000000000B /* FxPlug.framework in Copy Frameworks */ = {isa = PBXBuildFile; fileRef = B10000000000000000000008 /* FxPlug.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
-		A1000000000000000000000C /* PluginManager.framework in Copy Frameworks */ = {isa = PBXBuildFile; fileRef = B10000000000000000000009 /* PluginManager.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		A1000000000000000000000D /* CSTGradeXPC.pluginkit in Embed PlugIn */ = {isa = PBXBuildFile; fileRef = B1000000000000000000000D /* CSTGradeXPC.pluginkit */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 /* End PBXBuildFile section */
 
@@ -35,8 +33,6 @@
 				dstPath = "";
 			dstSubfolderSpec = 10;
 			files = (
-				A1000000000000000000000B /* FxPlug.framework in Copy Frameworks */,
-				A1000000000000000000000C /* PluginManager.framework in Copy Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -60,8 +56,8 @@
 		B10000000000000000000005 /* CSTUniforms.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CSTUniforms.swift; sourceTree = "<group>"; };
 		B10000000000000000000006 /* CSTGradePlugIn.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CSTGradePlugIn.swift; sourceTree = "<group>"; };
 		B10000000000000000000007 /* CSTShaders.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; path = CSTShaders.metal; sourceTree = "<group>"; };
-		B10000000000000000000008 /* FxPlug.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = FxPlug.framework; path = /Library/Frameworks/FxPlug.framework; sourceTree = "<absolute>"; };
-		B10000000000000000000009 /* PluginManager.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = PluginManager.framework; path = /Library/Frameworks/PluginManager.framework; sourceTree = "<absolute>"; };
+		B10000000000000000000008 /* FxPlug.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = FxPlug.framework; path = /Library/Developer/SDKs/FxPlug.sdk/Library/Frameworks/FxPlug.framework; sourceTree = "<absolute>"; };
+		B10000000000000000000009 /* PluginManager.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = PluginManager.framework; path = /Library/Developer/SDKs/FxPlug.sdk/Library/Frameworks/PluginManager.framework; sourceTree = "<absolute>"; };
 		B1000000000000000000000A /* Metal.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Metal.framework; path = /System/Library/Frameworks/Metal.framework; sourceTree = "<absolute>"; };
 		B1000000000000000000000B /* CSTGrade.fxplug */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = CSTGrade.fxplug; sourceTree = BUILT_PRODUCTS_DIR; };
 		B1000000000000000000000C /* project documentation */ = {isa = PBXFileReference; lastKnownFileType = text; path = README.md; sourceTree = "<group>"; };
@@ -320,7 +316,7 @@
 				DEFINES_MODULE = NO;
 				"EXCLUDED_ARCHS[sdk=macosx*]" = arm64;
 				FRAMEWORK_SEARCH_PATHS = (
-					"/Library/Frameworks",
+					"/Library/Developer/SDKs/FxPlug.sdk/Library/Frameworks",
 					"$(inherited)",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 11.0;
@@ -344,7 +340,7 @@
 				DEFINES_MODULE = NO;
 				"EXCLUDED_ARCHS[sdk=macosx*]" = arm64;
 				FRAMEWORK_SEARCH_PATHS = (
-					"/Library/Frameworks",
+					"/Library/Developer/SDKs/FxPlug.sdk/Library/Frameworks",
 					"$(inherited)",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 11.0;
