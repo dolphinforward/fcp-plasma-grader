@@ -29,8 +29,6 @@ import FxPlug
 // The interpolation protocol belongs on the custom value object: the value
 // on the left of a keyframe is `self`, and the host supplies the right value.
 // A LUT selection is a discrete choice, so interpolation is a hold/step.
-// UNVERIFIED: Xcode 14.2 may import the existential composition without the
-// `any` spelling used by current Apple documentation; confirm in FxPlug.h.
 @objc(CSTLUTSelection)
 final class CSTLUTSelection: NSObject, NSSecureCoding, NSCopying {
     static var supportsSecureCoding: Bool { true }
@@ -99,11 +97,6 @@ extension CSTLUTSelection: FxCustomParameterInterpolation_v2 {
             as! any NSCopying & NSSecureCoding & NSObjectProtocol
     }
 
-    func isEqual(_ value: any NSCopying & NSSecureCoding & NSObjectProtocol) -> Bool {
-        guard let other = value as? CSTLUTSelection else { return false }
-        return identifier == other.identifier && displayName == other.displayName
-            && sourcePath == other.sourcePath
-    }
 }
 #endif
 

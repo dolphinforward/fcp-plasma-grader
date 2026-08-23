@@ -7,7 +7,7 @@
 
 import Foundation
 
-final class CSTGradeError: NSError {
+final class CSTGradeError: NSError, @unchecked Sendable {
     init(_ message: String) {
         super.init(domain: "com.example.cstgrade", code: 1,
                    userInfo: [NSLocalizedDescriptionKey: message])

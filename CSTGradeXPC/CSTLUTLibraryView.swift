@@ -167,7 +167,7 @@ final class CSTLUTParameterView: NSView {
 }
 
 private final class CSTLUTCardView: NSView {
-    let identifier: UInt64
+    let lutIdentifier: UInt64
     let selection: CSTLUTSelection
     var onPreview: ((CSTLUTSelection) -> Void)?
     var onFavorite: (() -> Void)?
@@ -178,10 +178,10 @@ private final class CSTLUTCardView: NSView {
 
     init(record: CSTLUTRecord?, frame frameRect: NSRect, onPreview: @escaping (CSTLUTSelection) -> Void) {
         if let record {
-            identifier = record.identifier
+            lutIdentifier = record.identifier
             selection = record.selection()
         } else {
-            identifier = 0
+            lutIdentifier = 0
             selection = CSTLUTSelection.none()
         }
         self.onPreview = onPreview
@@ -234,8 +234,8 @@ private final class CSTLUTCardView: NSView {
     @objc private func clicked(_ sender: Any?) { onPreview?(selection) }
 
     @objc private func toggleFavorite(_ sender: Any?) {
-        guard identifier != 0,
-              let record = CSTLUTLibraryStore.shared.displayRecords().first(where: { $0.identifier == identifier }) else {
+        guard lutIdentifier != 0,
+              let record = CSTLUTLibraryStore.shared.displayRecords().first(where: { $0.identifier == lutIdentifier }) else {
             return
         }
         CSTLUTLibraryStore.shared.toggleFavorite(record)
