@@ -47,6 +47,7 @@ jobs:
             | tee -a hosted-macos-probe.txt
 
       - name: Upload probe report
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: hosted-macos-probe-${{ github.run_id }}

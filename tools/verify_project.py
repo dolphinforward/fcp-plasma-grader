@@ -191,7 +191,7 @@ def main() -> int:
     required_build_settings = [
         'ADDITIONAL_SDKS = "/Library/Developer/SDKs/FxPlug.sdk";',
         "ARCHS = x86_64;",
-        "EXCLUDED_ARCHS[sdk=macosx*] = arm64;",
+        '"EXCLUDED_ARCHS[sdk=macosx*]" = arm64;',
         '"/Library/Frameworks",',
         "MACOSX_DEPLOYMENT_TARGET = 11.0;",
         "ONLY_ACTIVE_ARCH = NO;",
