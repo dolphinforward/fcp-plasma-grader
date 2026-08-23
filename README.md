@@ -9,7 +9,7 @@ locked to the requested Intel Monterey target:
 
 - macOS deployment target: 11.0
 - architecture: `x86_64` only
-- intended host: Final Cut Pro 10.6.10 / macOS 12 Monterey
+- intended host: Final Cut Pro 10.6.5 / macOS 12 Monterey
 - intended IDE: Xcode 14.2
 - no FxPlug 3, OpenGL, OpenCL, or third-party dependency
 
@@ -39,9 +39,19 @@ installer copies that template and the plug-in together. The template preserves
 the registered effect UUID, stable parameter IDs, pipeline group order, and
 thumbnail artwork. Generating the package without Motion is an interoperability
 path rather than Apple’s documented authoring path, so it remains explicitly
-unverified until the first Final Cut Pro 10.6.10 Effects-browser test. Motion is
+unverified until the first Final Cut Pro 10.6.5 Effects-browser test. Motion is
 useful only as an optional developer diagnostic if that test exposes a template
 serialization difference.
+
+The compatibility target is specifically the October 2022 FCP generation.
+Apple released Final Cut Pro 10.6.5 and Motion 5.6.3 on the same day, so the
+committed template now declares `ozml 5.13` / `displayversion 5.6.3`, uses the
+older SDR working-gamut marker, and omits the DRT/HDR project metadata introduced
+in the later 5.6.4 generation. A December 2022 FxPlug template in
+[Gyroflow’s history](https://github.com/latenitefilms/GyroflowToolbox/blob/a74343a78d924e1eaa7354e77be8512fb3eb7c79/Source/Gyroflow/Wrapper%20Application/Resources/Motion%20Templates/Gyroflow/Gyroflow.moef)
+provides an exact-era structural reference, including an unarchived custom
+parameter placeholder. This reduces the Motion-free serialization risk but does
+not replace testing in the user’s installed FCP.
 
 ## Architecture and render lifecycle
 
@@ -321,7 +331,7 @@ There are two developer build routes:
    then run the manual hosted workflow. GitHub supplies the Intel Mac and Xcode;
    the workflow downloads the SDK directly from Apple and packages the result.
 2. **Canonical local build:** use macOS 12 Monterey, Xcode 14.2, and the FxPlug
-   4.1 SDK. This is the closest match to the intended Final Cut Pro 10.6.10 host
+   4.1 SDK. This is the closest match to the intended Final Cut Pro 10.6.5 host
    and remains the compatibility reference if the newer hosted compiler differs.
 
 Both routes require the FxPlug SDK to provide:
@@ -435,6 +445,10 @@ These are deliberate, visible risk points rather than hidden API guesses:
    source compatibility with that newer compiler and the requested FxPlug 4.1
    headers. A successful hosted build still does not replace the Monterey/FCP
    runtime tests.
+   Apple’s current setup documentation names FCP 10.6.6 or newer, while this
+   product deliberately targets 10.6.5. The required host interfaces all declare
+   FxPlug 4.0 (or earlier) availability, and an exact-era FxPlug template exists,
+   but only a 10.6.5 launch/render test can close that older-host gap.
 
 1. **Exact installed SDK layout.** The sparse SDK module maps follow the FxPlug
    4.1 example layout, but the physical framework symlink location can depend on
@@ -470,7 +484,7 @@ These are deliberate, visible risk points rather than hidden API guesses:
    space. The exact display/result appearance must be checked in a Rec.2020
    library on the target FCP release.
 7. **Texture format and alpha convention.** FxImageTile supplies Metal textures,
-   but the exact pixel format and premultiplication used by FCP 10.6.10 for each
+   but the exact pixel format and premultiplication used by FCP 10.6.5 for each
    render quality are host details. The shader preserves alpha and treats RGB as
    straight numeric components; the tests include format/alpha checks.
 8. **LogC3 exposure index.** “LogC3” is not a single curve independent of EI.
@@ -489,7 +503,7 @@ These are deliberate, visible risk points rather than hidden API guesses:
 11. **Custom parameter bridge on this vintage host.** Apple documents
     `FxCustomParameterViewHost_v2`, `FxCustomParameterInterpolation_v2`, and
     `FxCustomParameterActionAPI_v4`, and the source follows those names. The
-    Xcode 14.2 Swift importer, FCP 10.6.10’s viewbridge, and ARC lifetime
+    Xcode 14.2 Swift importer, FCP 10.6.5’s viewbridge, and ARC lifetime
     behavior for an AppKit custom view must be confirmed from the installed
     headers and by the FCP inspector test. The source retains views strongly and
     marks the uncertain selector/class-set spellings.
@@ -541,11 +555,12 @@ These are deliberate, visible risk points rather than hidden API guesses:
     it for only one target.
 
 20. **Generated Motion template compatibility.** The committed `.moef` uses the
-    Monterey-era XML format and publishes stable parameter IDs without requiring
-    Motion. Its custom LUT value cannot be serialized against the private host
-    archive format in this Linux environment. Confirm that FCP 10.6.10 loads the
-    template, creates the default custom value through the plugin, and exposes
-    every published control before treating the release as install-ready.
+    matched Motion 5.6.3 XML format and publishes stable parameter IDs without
+    requiring Motion. Exact-era FxPlug precedent stores a custom parameter as an
+    empty parameter node, which is the same strategy used for the LUT selection.
+    Confirm that FCP 10.6.5 loads the template, creates the default custom value
+    through the plugin, and exposes every published control before treating the
+    release as install-ready.
 
 None of these points was compiled or exercised on the target machine in this
 environment. Treat the first Mac build and [TESTING.md](TESTING.md) as the

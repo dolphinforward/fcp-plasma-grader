@@ -330,8 +330,20 @@ def main() -> int:
         check(motion_root.tag == "ozml", "Motion template root must be ozml")
         check(motion_root.get("version") == "5.13", "Motion template must use the Monterey-era ozml version")
         check(
-            motion_root.findtext("displayversion") == "5.6.4",
-            "Motion template display version must remain compatible with the target FCP generation",
+            motion_root.findtext("displayversion") == "5.6.3",
+            "Motion template display version must match the FCP 10.6.5 generation",
+        )
+        check(
+            motion_root.findtext(".//sceneSettings/workingGamut") == "0",
+            "FCP 10.6.5 template must use the pre-automatic-processing working gamut",
+        )
+        check(
+            motion_root.find(".//sceneSettings/DRTSupport") is None,
+            "FCP 10.6.5 template must not require Motion 5.6.4 DRT metadata",
+        )
+        check(
+            not motion_root.findall('.//parameter[@name="HDR White Level"]'),
+            "FCP 10.6.5 template must not contain Motion 5.6.4 HDR project metadata",
         )
         registered_uuid = plugins[0].get("plugInUUID") if plugins else None
         filters = motion_root.findall(f".//filter[@pluginUUID='{registered_uuid}']")
@@ -382,7 +394,7 @@ def main() -> int:
         "FCP Plasma Grader",
         "macOS deployment target: 11.0",
         "x86_64",
-        "Final Cut Pro 10.6.10",
+        "Final Cut Pro 10.6.5",
         "LUT Library",
         "Samsung Log",
         "DaVinci Resolve primary-tool coverage",

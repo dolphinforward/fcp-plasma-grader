@@ -1,6 +1,7 @@
 FCP PLASMA GRADER — INSTALLATION
 
 You do not need Xcode or Motion.
+This build targets Final Cut Pro 10.6.5 on an Intel Mac running Monterey.
 
 1. Quit Final Cut Pro.
 2. Double-click “Install FCP Plasma Grader.command”.

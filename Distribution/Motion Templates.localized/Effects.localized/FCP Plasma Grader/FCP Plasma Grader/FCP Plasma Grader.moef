@@ -2,7 +2,7 @@
 <!DOCTYPE ozxmlscene>
 <ozml version="5.13">
 
-<displayversion>5.6.4</displayversion>
+<displayversion>5.6.3</displayversion>
 
 <factory id="1" uuid="46c844a813d311d8a438000a95af9f7e">
 	<description>Channel</description>
@@ -56,7 +56,7 @@
 		<frameRate>30</frameRate>
 		<NTSC>1</NTSC>
 		<pixelAspectRatio>1</pixelAspectRatio>
-		<workingGamut>1</workingGamut>
+		<workingGamut>0</workingGamut>
 		<viewGamut>-1</viewGamut>
 		<optimizeForDisplay>0</optimizeForDisplay>
 		<backgroundColor red="0" green="0" blue="0" alpha="1"/>
@@ -74,7 +74,6 @@
 		<parameterColorSpaceID>3</parameterColorSpaceID>
 		<savePreviewMovie>0</savePreviewMovie>
 		<Object3DEnvironments>100</Object3DEnvironments>
-		<DRTSupport>1</DRTSupport>
 	</sceneSettings>
 	<publishSettings>
 		<version>2</version>
@@ -111,9 +110,7 @@
 		<timing in="0 1 1 0" out="-4004 120000 1 0" offset="0 1 1 0"/>
 		<foldFlags>0</foldFlags>
 		<baseFlags>16</baseFlags>
-		<parameter name="Properties" id="1" flags="8589938704">
-			<parameter name="HDR White Level" id="103" flags="8589967376" default="0.95" value="0.95"/>
-		</parameter>
+		<parameter name="Properties" id="1" flags="8589938704"/>
 		<parameter name="Object" id="2" flags="8589938704"/>
 	</scenenode>
 	<layer name="Group" id="10288">

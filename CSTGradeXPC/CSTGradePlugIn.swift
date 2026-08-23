@@ -505,7 +505,7 @@ final class CSTGradePlugIn: NSObject, FxTileableEffect, FxCustomParameterViewHos
 
         // UNVERIFIED: addPushButton/selector is documented, but confirm the
         // Xcode 14.2 FxPlug SDK importer accepts this exact target-action form
-        // and calls resetAllControls(_:) from FCP 10.6.10.
+        // and calls resetAllControls(_:) from FCP 10.6.5.
         try require(parameterAPI.addPushButton(
             withName: "Reset All Controls",
             parameterID: CSTParameterID.resetAll,

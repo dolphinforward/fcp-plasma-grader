@@ -8,7 +8,7 @@ on the user’s Mac except the finished effect.
 
 Final Cut Pro itself is not available on GitHub runners, so a successful build
 proves compilation and packaging, not that the effect loads or renders correctly
-in FCP 10.6.10 on Monterey.
+in FCP 10.6.5 on Monterey.
 
 ## Why one Apple secret is still needed
 
@@ -73,6 +73,13 @@ hosted build exposes Swift importer differences, fix those against the requested
 FxPlug 4.1 headers without raising the deployment target. If Apple no longer
 serves the 4.1 disk image at its historical official URL, stop and investigate;
 do not silently substitute a newer SDK and call it Monterey-compatible.
+
+The host target is Final Cut Pro 10.6.5, paired historically with Motion 5.6.3.
+The bundled effect template is therefore pinned to `ozml 5.13` and
+`displayversion 5.6.3`, and excludes the automatic-color-processing DRT/HDR
+metadata added in Motion 5.6.4. Apple’s current FxPlug setup page lists FCP
+10.6.6 or newer; compilation alone cannot prove this deliberately older host.
+The first acceptance run must use the user’s actual FCP 10.6.5 installation.
 
 ## Other workflows
 

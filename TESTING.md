@@ -1,10 +1,15 @@
 # FCP Plasma Grader / CST Grade manual test plan
 
 These tests must be run on the target Intel MacBook Pro with macOS 12 Monterey
-and Final Cut Pro 10.6.10. An end user does not need Xcode, Motion, or the FxPlug
+and Final Cut Pro 10.6.5. An end user does not need Xcode, Motion, or the FxPlug
 SDK. Build-only checks may run on GitHub or on the canonical Xcode 14.2/FxPlug
 4.1 development setup. Record the exact OS/FCP/build artifact versions and keep
 one known-good test library before changing the plugin.
+
+Before the first launch, confirm that the bundled `.moef` declares
+`<displayversion>5.6.3</displayversion>` and contains neither `DRTSupport` nor
+`HDR White Level`. Those later template fields are outside the FCP 10.6.5-era
+Motion document baseline.
 
 For every visual test, also inspect the Console output and the FCP render
 quality being used. A failed registration/API test should be fixed before

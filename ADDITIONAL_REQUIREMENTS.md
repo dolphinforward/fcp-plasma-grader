@@ -74,7 +74,7 @@ an account, network connection, cloud service, subscription, or bundled propriet
   and no eager rendering of an entire large library.
 - Keep the render path one-pass. Browser thumbnail work must not stall Final Cut
   playback or allocate an unbounded number of full-resolution frames/textures.
-- If FxPlug 4 on Final Cut Pro 10.6.10 cannot host the full browser safely inside the
+- If FxPlug 4 on Final Cut Pro 10.6.5 cannot host the full browser safely inside the
   inspector, use the existing FxPlug wrapper application as the library/organizer and
   expose a simple Library button/selection bridge in the effect. Document the exact
   limitation and workflow. Do not invent an FxPlug custom-view API signature.
