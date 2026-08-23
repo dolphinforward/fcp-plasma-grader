@@ -1,0 +1,16 @@
+.DS_Store
+.build/
+build/
+DerivedData/
+Artifacts/
+*.xcarchive
+*.xcresult
+*.xccheckout
+*.xcscmblueprint
+*.xcuserstate
+*.moved-aside
+xcuserdata/
+CSTGrade.xcodeproj/project.xcworkspace/xcuserdata/
+CSTGrade.xcodeproj/xcuserdata/
+__pycache__/
+*.py[cod]

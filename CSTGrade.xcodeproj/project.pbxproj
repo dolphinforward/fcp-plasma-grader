@@ -1,0 +1,443 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 56;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		A10000000000000000000001 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000001 /* AppDelegate.swift */; };
+		A10000000000000000000002 /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000002 /* main.swift */; };
+		A10000000000000000000003 /* CSTParameterIDs.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000003 /* CSTParameterIDs.swift */; };
+		A10000000000000000000004 /* CSTColorScience.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000004 /* CSTColorScience.swift */; };
+		A10000000000000000000005 /* CSTUniforms.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000005 /* CSTUniforms.swift */; };
+		A10000000000000000000006 /* CSTGradePlugIn.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000006 /* CSTGradePlugIn.swift */; };
+		A10000000000000000000010 /* CSTGradeError.swift in XPC Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000015 /* CSTGradeError.swift */; };
+		A10000000000000000000011 /* CSTGradeError.swift in Wrapper Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000015 /* CSTGradeError.swift */; };
+		A10000000000000000000012 /* CSTLUTLibrary.swift in Wrapper Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000013 /* CSTLUTLibrary.swift */; };
+		A10000000000000000000013 /* CSTLUTLibraryView.swift in Wrapper Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000014 /* CSTLUTLibraryView.swift */; };
+		A10000000000000000000007 /* CSTShaders.metal in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000007 /* CSTShaders.metal */; };
+		A1000000000000000000000E /* CSTLUTLibrary.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000013 /* CSTLUTLibrary.swift */; };
+		A1000000000000000000000F /* CSTLUTLibraryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000014 /* CSTLUTLibraryView.swift */; };
+		A10000000000000000000008 /* FxPlug.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B10000000000000000000008 /* FxPlug.framework */; };
+		A10000000000000000000009 /* PluginManager.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B10000000000000000000009 /* PluginManager.framework */; };
+		A1000000000000000000000A /* Metal.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B1000000000000000000000A /* Metal.framework */; };
+		A1000000000000000000000B /* FxPlug.framework in Copy Frameworks */ = {isa = PBXBuildFile; fileRef = B10000000000000000000008 /* FxPlug.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		A1000000000000000000000C /* PluginManager.framework in Copy Frameworks */ = {isa = PBXBuildFile; fileRef = B10000000000000000000009 /* PluginManager.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		A1000000000000000000000D /* CSTGradeXPC.pluginkit in Embed PlugIn */ = {isa = PBXBuildFile; fileRef = B1000000000000000000000D /* CSTGradeXPC.pluginkit */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
+/* End PBXBuildFile section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		C10000000000000000000001 /* Copy Frameworks */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+				dstPath = "";
+			dstSubfolderSpec = 10;
+			files = (
+				A1000000000000000000000B /* FxPlug.framework in Copy Frameworks */,
+				A1000000000000000000000C /* PluginManager.framework in Copy Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		C10000000000000000000002 /* Embed PlugIn */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				A1000000000000000000000D /* CSTGradeXPC.pluginkit in Embed PlugIn */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXFileReference section */
+		B10000000000000000000001 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
+		B10000000000000000000002 /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
+		B10000000000000000000003 /* CSTParameterIDs.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CSTParameterIDs.swift; sourceTree = "<group>"; };
+		B10000000000000000000004 /* CSTColorScience.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CSTColorScience.swift; sourceTree = "<group>"; };
+		B10000000000000000000005 /* CSTUniforms.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CSTUniforms.swift; sourceTree = "<group>"; };
+		B10000000000000000000006 /* CSTGradePlugIn.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CSTGradePlugIn.swift; sourceTree = "<group>"; };
+		B10000000000000000000007 /* CSTShaders.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; path = CSTShaders.metal; sourceTree = "<group>"; };
+		B10000000000000000000008 /* FxPlug.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = FxPlug.framework; path = /Library/Frameworks/FxPlug.framework; sourceTree = "<absolute>"; };
+		B10000000000000000000009 /* PluginManager.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = PluginManager.framework; path = /Library/Frameworks/PluginManager.framework; sourceTree = "<absolute>"; };
+		B1000000000000000000000A /* Metal.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Metal.framework; path = /System/Library/Frameworks/Metal.framework; sourceTree = "<absolute>"; };
+		B1000000000000000000000B /* CSTGrade.fxplug */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = CSTGrade.fxplug; sourceTree = BUILT_PRODUCTS_DIR; };
+		B1000000000000000000000C /* project documentation */ = {isa = PBXFileReference; lastKnownFileType = text; path = README.md; sourceTree = "<group>"; };
+		B1000000000000000000000D /* CSTGradeXPC.pluginkit */ = {isa = PBXFileReference; explicitFileType = wrapper.pluginkit; includeInIndex = 0; path = CSTGradeXPC.pluginkit; sourceTree = BUILT_PRODUCTS_DIR; };
+		B1000000000000000000000E /* CSTGrade app Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		B1000000000000000000000F /* CSTGradeXPC Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		B10000000000000000000011 /* FxPlug module map */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.module-map; path = module.modulemap; sourceTree = "<group>"; };
+		B10000000000000000000012 /* PluginManager module map */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.module-map; path = module.modulemap; sourceTree = "<group>"; };
+		B10000000000000000000013 /* CSTLUTLibrary.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CSTLUTLibrary.swift; sourceTree = "<group>"; };
+		B10000000000000000000014 /* CSTLUTLibraryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CSTLUTLibraryView.swift; sourceTree = "<group>"; };
+		B10000000000000000000015 /* CSTGradeError.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CSTGradeError.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		C10000000000000000000003 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A10000000000000000000008 /* FxPlug.framework in Frameworks */,
+				A10000000000000000000009 /* PluginManager.framework in Frameworks */,
+				A1000000000000000000000A /* Metal.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		C10000000000000000000004 /* Wrapper Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		D10000000000000000000001 = {
+			isa = PBXGroup;
+			children = (
+				D10000000000000000000002 /* CSTGrade */,
+				D10000000000000000000003 /* CSTGradeXPC */,
+				D10000000000000000000004 /* Modules */,
+				B1000000000000000000000C /* project documentation */,
+			);
+			sourceTree = "<group>";
+		};
+		D10000000000000000000002 /* CSTGrade */ = {
+			isa = PBXGroup;
+			children = (
+				B10000000000000000000001 /* AppDelegate.swift */,
+				B1000000000000000000000E /* CSTGrade app Info.plist */,
+			);
+			path = CSTGrade;
+			sourceTree = "<group>";
+		};
+		D10000000000000000000003 /* CSTGradeXPC */ = {
+			isa = PBXGroup;
+			children = (
+				B10000000000000000000002 /* main.swift */,
+				B10000000000000000000003 /* CSTParameterIDs.swift */,
+				B10000000000000000000004 /* CSTColorScience.swift */,
+				B10000000000000000000005 /* CSTUniforms.swift */,
+				B10000000000000000000006 /* CSTGradePlugIn.swift */,
+				B10000000000000000000015 /* CSTGradeError.swift */,
+				B10000000000000000000013 /* CSTLUTLibrary.swift */,
+				B10000000000000000000014 /* CSTLUTLibraryView.swift */,
+				B10000000000000000000007 /* CSTShaders.metal */,
+				B1000000000000000000000F /* CSTGradeXPC Info.plist */,
+			);
+			path = CSTGradeXPC;
+			sourceTree = "<group>";
+		};
+		D10000000000000000000004 /* Modules */ = {
+			isa = PBXGroup;
+			children = (
+				D10000000000000000000005 /* FxPlug */,
+				D10000000000000000000006 /* PluginManager */,
+			);
+			path = Modules;
+			sourceTree = "<group>";
+		};
+		D10000000000000000000005 /* FxPlug */ = {
+			isa = PBXGroup;
+			children = (
+				B10000000000000000000011 /* FxPlug module map */,
+			);
+			path = FxPlug;
+			sourceTree = "<group>";
+		};
+		D10000000000000000000006 /* PluginManager */ = {
+			isa = PBXGroup;
+			children = (
+				B10000000000000000000012 /* PluginManager module map */,
+			);
+			path = PluginManager;
+			sourceTree = "<group>";
+		};
+		D10000000000000000000007 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				B1000000000000000000000B /* CSTGrade.fxplug */,
+				B1000000000000000000000D /* CSTGradeXPC.pluginkit */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		E10000000000000000000001 /* CSTGrade */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = F10000000000000000000001 /* Build configuration list for CSTGrade */;
+			buildPhases = (
+				C10000000000000000000005 /* Sources */,
+				C10000000000000000000004 /* Wrapper Frameworks */,
+				C10000000000000000000006 /* Resources */,
+				C10000000000000000000002 /* Embed PlugIn */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				E10000000000000000000003 /* CSTGradeXPC dependency */,
+			);
+			name = CSTGrade;
+			productName = CSTGrade;
+			productReference = B1000000000000000000000B /* CSTGrade.fxplug */;
+			productType = "com.apple.product-type.application";
+		};
+		E10000000000000000000002 /* CSTGradeXPC */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = F10000000000000000000002 /* Build configuration list for CSTGradeXPC */;
+			buildPhases = (
+				C10000000000000000000007 /* XPC Sources */,
+				C10000000000000000000003 /* Frameworks */,
+				C10000000000000000000008 /* XPC Resources */,
+				C10000000000000000000001 /* Copy Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = CSTGradeXPC;
+			productName = CSTGradeXPC;
+			productReference = B1000000000000000000000D /* CSTGradeXPC.pluginkit */;
+			productType = "com.apple.product-type.xpc-service";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		E10000000000000000000000 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				LastUpgradeCheck = 1420;
+				TargetAttributes = {
+					E10000000000000000000001 = { CreatedOnToolsVersion = 1420; };
+					E10000000000000000000002 = { CreatedOnToolsVersion = 1420; };
+				};
+			};
+			buildConfigurationList = F10000000000000000000000 /* Build configuration list for project */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = D10000000000000000000001;
+			productRefGroup = D10000000000000000000007 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				E10000000000000000000001 /* CSTGrade */,
+				E10000000000000000000002 /* CSTGradeXPC */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		C10000000000000000000006 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		C10000000000000000000008 /* XPC Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXShellScriptBuildPhase section */
+/* No shell build scripts: this project never invokes xcodebuild or metal. */
+/* End PBXShellScriptBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		C10000000000000000000005 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A10000000000000000000001 /* AppDelegate.swift in Sources */,
+				A10000000000000000000011 /* CSTGradeError.swift in Wrapper Sources */,
+				A10000000000000000000012 /* CSTLUTLibrary.swift in Wrapper Sources */,
+				A10000000000000000000013 /* CSTLUTLibraryView.swift in Wrapper Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		C10000000000000000000007 /* XPC Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A10000000000000000000002 /* main.swift in Sources */,
+				A10000000000000000000003 /* CSTParameterIDs.swift in Sources */,
+				A10000000000000000000004 /* CSTColorScience.swift in Sources */,
+				A10000000000000000000005 /* CSTUniforms.swift in Sources */,
+				A10000000000000000000006 /* CSTGradePlugIn.swift in Sources */,
+				A10000000000000000000010 /* CSTGradeError.swift in XPC Sources */,
+				A1000000000000000000000E /* CSTLUTLibrary.swift in Sources */,
+				A1000000000000000000000F /* CSTLUTLibraryView.swift in Sources */,
+				A10000000000000000000007 /* CSTShaders.metal in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		E10000000000000000000003 /* CSTGradeXPC dependency */ = {
+			isa = PBXTargetDependency;
+			target = E10000000000000000000002 /* CSTGradeXPC */;
+			targetProxy = E10000000000000000000004 /* CSTGradeXPC proxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin PBXContainerItemProxy section */
+		E10000000000000000000004 /* CSTGradeXPC proxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = E10000000000000000000000 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = E10000000000000000000002;
+			remoteInfo = CSTGradeXPC;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin XCBuildConfiguration section */
+		F20000000000000000000001 /* Debug project */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ADDITIONAL_SDKS = "/Library/Developer/SDKs/FxPlug.sdk";
+				ARCHS = x86_64;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_STYLE = Manual;
+				CURRENT_PROJECT_VERSION = 1;
+				DEFINES_MODULE = NO;
+				EXCLUDED_ARCHS[sdk=macosx*] = arm64;
+				FRAMEWORK_SEARCH_PATHS = (
+					"/Library/Frameworks",
+					"$(inherited)",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 11.0;
+				ONLY_ACTIVE_ARCH = NO;
+				SDKROOT = macosx;
+				SWIFT_VERSION = 5.0;
+				VALID_ARCHS = x86_64;
+			};
+			name = Debug;
+		};
+		F20000000000000000000002 /* Release project */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ADDITIONAL_SDKS = "/Library/Developer/SDKs/FxPlug.sdk";
+				ARCHS = x86_64;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_STYLE = Manual;
+				CURRENT_PROJECT_VERSION = 1;
+				DEFINES_MODULE = NO;
+				EXCLUDED_ARCHS[sdk=macosx*] = arm64;
+				FRAMEWORK_SEARCH_PATHS = (
+					"/Library/Frameworks",
+					"$(inherited)",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 11.0;
+				ONLY_ACTIVE_ARCH = NO;
+				SDKROOT = macosx;
+				SWIFT_VERSION = 5.0;
+				VALID_ARCHS = x86_64;
+			};
+			name = Release;
+		};
+		F20000000000000000000003 /* Debug CSTGrade */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				INFOPLIST_FILE = CSTGrade/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks";
+				PRODUCT_BUNDLE_IDENTIFIER = com.example.cstgrade;
+				PRODUCT_NAME = CSTGrade;
+				SWIFT_INCLUDE_PATHS = "$(SRCROOT)/Modules";
+				WRAPPER_EXTENSION = fxplug;
+			};
+			name = Debug;
+		};
+		F20000000000000000000004 /* Release CSTGrade */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				INFOPLIST_FILE = CSTGrade/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks";
+				PRODUCT_BUNDLE_IDENTIFIER = com.example.cstgrade;
+				PRODUCT_NAME = CSTGrade;
+				SWIFT_INCLUDE_PATHS = "$(SRCROOT)/Modules";
+				WRAPPER_EXTENSION = fxplug;
+			};
+			name = Release;
+		};
+		F20000000000000000000005 /* Debug CSTGradeXPC */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				INFOPLIST_FILE = CSTGradeXPC/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @loader_path/../Frameworks";
+				PRODUCT_BUNDLE_IDENTIFIER = com.example.cstgrade.xpc;
+				PRODUCT_NAME = CSTGradeXPC;
+				SKIP_INSTALL = YES;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = CST_GRADE_XPC;
+				SWIFT_INCLUDE_PATHS = "$(SRCROOT)/Modules";
+				WRAPPER_EXTENSION = pluginkit;
+			};
+			name = Debug;
+		};
+		F20000000000000000000006 /* Release CSTGradeXPC */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				INFOPLIST_FILE = CSTGradeXPC/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @loader_path/../Frameworks";
+				PRODUCT_BUNDLE_IDENTIFIER = com.example.cstgrade.xpc;
+				PRODUCT_NAME = CSTGradeXPC;
+				SKIP_INSTALL = YES;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = CST_GRADE_XPC;
+				SWIFT_INCLUDE_PATHS = "$(SRCROOT)/Modules";
+				WRAPPER_EXTENSION = pluginkit;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		F10000000000000000000000 /* Build configuration list for project */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				F20000000000000000000001 /* Debug project */,
+				F20000000000000000000002 /* Release project */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		F10000000000000000000001 /* Build configuration list for CSTGrade */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				F20000000000000000000003 /* Debug CSTGrade */,
+				F20000000000000000000004 /* Release CSTGrade */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		F10000000000000000000002 /* Build configuration list for CSTGradeXPC */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				F20000000000000000000005 /* Debug CSTGradeXPC */,
+				F20000000000000000000006 /* Release CSTGradeXPC */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = E10000000000000000000000 /* Project object */;
+}

@@ -1,0 +1,86 @@
+name: Canonical Intel Monterey build
+
+on:
+  workflow_dispatch:
+    inputs:
+      xcode_app:
+        description: Absolute path to the Xcode 14.2 application
+        required: true
+        default: /Applications/Xcode.app
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: [self-hosted, macOS, X64, cst-grade]
+    timeout-minutes: 30
+    env:
+      XCODE_APP: ${{ inputs.xcode_app }}
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Verify exact target toolchain
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -d "$XCODE_APP/Contents/Developer"
+          export DEVELOPER_DIR="$XCODE_APP/Contents/Developer"
+          xcodebuild -version
+          test "$(xcodebuild -version | sed -n '1p')" = "Xcode 14.2"
+          test "$(uname -m)" = "x86_64"
+          test "$(sw_vers -productVersion | cut -d. -f1,2)" = "12.0" || \
+            test "$(sw_vers -productVersion | cut -d. -f1)" = "12"
+          test -d /Library/Developer/SDKs/FxPlug.sdk
+          test -d /Library/Frameworks/FxPlug.framework
+          test -d /Library/Frameworks/PluginManager.framework
+          python3 tools/verify_project.py
+
+      - name: Build unsigned Release bundle
+        id: build
+        shell: bash
+        run: |
+          set -euo pipefail
+          export DEVELOPER_DIR="$XCODE_APP/Contents/Developer"
+          derived="$RUNNER_TEMP/CSTGradeDerivedData-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
+          xcodebuild \
+            -project CSTGrade.xcodeproj \
+            -scheme CSTGrade \
+            -configuration Release \
+            -derivedDataPath "$derived" \
+            ARCHS=x86_64 \
+            ONLY_ACTIVE_ARCH=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            build
+          echo "derived_data=$derived" >> "$GITHUB_OUTPUT"
+
+      - name: Inspect and package x86_64 product
+        id: package
+        shell: bash
+        run: |
+          set -euo pipefail
+          bundle="${{ steps.build.outputs.derived_data }}/Build/Products/Release/CSTGrade.fxplug"
+          wrapper="$bundle/Contents/MacOS/CSTGrade"
+          service="$bundle/Contents/PlugIns/CSTGradeXPC.pluginkit/Contents/MacOS/CSTGradeXPC"
+          test -d "$bundle"
+          test -f "$wrapper"
+          test -f "$service"
+          file "$wrapper" "$service"
+          test "$(lipo -archs "$wrapper")" = "x86_64"
+          test "$(lipo -archs "$service")" = "x86_64"
+          artifact="$RUNNER_TEMP/CSTGradeArtifact"
+          mkdir -p "$artifact"
+          ditto -c -k --sequesterRsrc --keepParent "$bundle" "$artifact/CSTGrade.fxplug.zip"
+          (cd "$artifact" && shasum -a 256 CSTGrade.fxplug.zip > SHA256SUMS.txt)
+          echo "artifact=$artifact" >> "$GITHUB_OUTPUT"
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: CSTGrade-x86_64-${{ github.sha }}
+          path: ${{ steps.package.outputs.artifact }}
+          if-no-files-found: error
+          retention-days: 14

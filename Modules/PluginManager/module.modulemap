@@ -1,0 +1,6 @@
+framework module PluginManager {
+  umbrella header "/Library/Developer/SDKs/FxPlug.sdk/Library/Frameworks/PluginManager.framework/Versions/B/Headers/PluginManager.h"
+  export *
+  module * { export * }
+  link framework "PluginManager"
+}

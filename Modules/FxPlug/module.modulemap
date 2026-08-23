@@ -1,0 +1,8 @@
+framework module FxPlug {
+  // FxPlug 4.1 is a sparse SDK. This is the same header location used by the
+  // FxPlug 4 Swift examples; the project also sets ADDITIONAL_SDKS explicitly.
+  umbrella header "/Library/Developer/SDKs/FxPlug.sdk/Library/Frameworks/FxPlug.framework/Versions/A/Headers/FxPlugSDK.h"
+  export *
+  module * { export * }
+  link framework "FxPlug"
+}
