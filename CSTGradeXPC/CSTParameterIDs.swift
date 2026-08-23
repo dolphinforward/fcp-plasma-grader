@@ -66,6 +66,15 @@ enum CSTParameterID {
     static let outputEncodeGroup: UInt32 = 28
     static let creativeLUTGroup: UInt32 = 29
     static let utilityGroup: UInt32 = 30
+
+    // Primary-grade extensions. These were appended after every v1 ID so old
+    // projects continue to deserialize the original controls unchanged.
+    static let contrastPivot: UInt32 = 31
+    static let colorBoost: UInt32 = 32
+    static let hueRotation: UInt32 = 33
+    static let shadows: UInt32 = 34
+    static let highlights: UInt32 = 35
+    static let offset: UInt32 = 36
 }
 
 // Popup values are also persisted as integers. They are part of the same
@@ -76,6 +85,7 @@ enum CSTInputTransfer: UInt32 {
     case vLog = 2
     case logC3EI800 = 3
     case gamma22 = 4
+    case samsungLog = 5
 }
 
 enum CSTSourcePrimaries: UInt32 {

@@ -1,4 +1,4 @@
-# CST Grade manual test plan
+# FCP Plasma Grader / CST Grade manual test plan
 
 These tests must be run on the target Intel MacBook Pro with macOS 12
 Monterey, Xcode 14.2, Final Cut Pro 10.6.10, and the installed FxPlug SDK.
@@ -69,10 +69,12 @@ Action:
 - Native sections appear in this order: 1. Input Decode, 2. Gamut Transform,
   3. Linear Grade, 4. Tone Map, 5. Output Encode, 6. Creative LUT, Utilities.
 
-- Input Decode Enabled, Input Transfer
+- Input Decode Enabled, Input Transfer (in order: Rec.709, sLog3, V-Log,
+  ARRI LogC3 EI 800, Gamma 2.2, Samsung Log)
 - Gamut Transform Enabled, Source Primaries
-- Grade Enabled, Exposure, Temperature, Tint, Contrast, Saturation, Lift,
-  Gamma, Gain
+- Grade Enabled, Exposure, Temperature, Tint, Contrast, Contrast Pivot,
+  Shadows, Highlights, Saturation, Color Boost, Hue Rotation, Lift, Gamma,
+  Gain, Offset
 - Tone Map Enabled, Tone Map, Highlight Knee
 - Output Encode Enabled, Display-Referred 2.4 Gamma
 - LUT Library, Creative LUT Enabled, Creative LUT Amount
@@ -127,10 +129,17 @@ awk 'BEGIN {
   cut = 5.367655 * 0.010591 + 0.092809
   logc3 = (v > cut) ? ((10 ^ ((v - 0.385537) / 0.247190) - 0.052272) / 5.555556) : ((v - 0.092809) / 5.367655)
 
+  samsungTransition = 0.206561909
+  samsungAtTransition = 10 ^ ((samsungTransition - 0.720504856) / 0.258984868) - 0.0003645
+  samsungGrayCode = 0.258984868 * (log(0.18 + 0.0003645) / log(10)) + 0.720504856
+  samsungGray = 10 ^ ((samsungGrayCode - 0.720504856) / 0.258984868) - 0.0003645
+
   rec709 = ((0.5 + 0.099) / 1.099) ^ (1 / 0.45)
   printf "sLog3 code 420/1023 -> %.12f\n", slog3
   printf "V-Log code 433/1023 -> %.12f\n", vlog
   printf "LogC3 EI800 code 400/1023 -> %.12f\n", logc3
+  printf "Samsung Log transition -> %.12f linear\n", samsungAtTransition
+  printf "Samsung Log 18%% code %.12f -> %.12f linear\n", samsungGrayCode, samsungGray
   printf "Rec.709 encoded 0.5 -> %.12f linear\n", rec709
 }'
 ```
@@ -140,6 +149,8 @@ Expected output, to the shown precision:
 - sLog3 `420/1023` → `0.180000000000`
 - V-Log `433/1023` → approximately `0.179916274162`
 - LogC3 EI 800 `400/1023` → approximately `0.180000018677`
+- Samsung Log `0.206561909` → approximately `0.010000000010` linear
+- Samsung Log 18% gray code `0.527859237029` → `0.180000000000` linear
 - Rec.709 encoded `0.5` → approximately `0.259589400506` linear
 
 For a GPU-level check, use a 1-pixel floating-point source or an Xcode Metal
@@ -151,6 +162,10 @@ because Rec.2020→Rec.2020 is the identity. With a linear input of exactly
 the BT.709 output should be approximately `0.409007728864` before final
 quantization. With linear `1.0`, Reinhard and knee `1.0` must produce exactly
 `0.5` before output encoding.
+
+Repeat the decode capture with Input Transfer **Samsung Log** and Source
+Primaries **Rec.2020**. Encoded RGB `0.527859237029` must produce RGB `0.18`,
+and the branch transition `0.206561909` must produce approximately `0.01`.
 
 Failure caught: wrong code normalization, a transfer constant typo, premature
 clamping, wrong stage order, accidental matrix application, incorrect tone-map
@@ -200,19 +215,28 @@ Action:
    linear grade path directly.
 2. Set Grade ON and all controls neutral.
 3. Test Exposure at +1 stop and -1 stop; then set Contrast to 2.0 and use a
-   linear sample at exactly the pivot `0.18`.
-4. Move each Lift/Gamma/Gain channel separately.
+   linear sample exactly equal to the selected Contrast Pivot.
+4. Move Shadows and Highlights separately across a grayscale ramp.
+5. Compare Saturation with Color Boost on a chart containing both subtle and
+   already-saturated colors; rotate Hue by 180 degrees and back to zero.
+6. Move each Lift/Gamma/Gain/Offset channel separately.
 
 Correct result:
 
 - +1 stop doubles every signed linear component; -1 stop halves it;
-- a value exactly `0.18` remains `0.18` when only contrast changes;
+- a value exactly equal to Contrast Pivot remains unchanged when only contrast changes;
+- Shadows changes the lower ramp smoothly, Highlights changes the upper ramp
+  smoothly, and neither creates a hard seam;
+- Color Boost affects the low-saturation patches proportionally more than the
+  saturated patches; Hue Rotation preserves a neutral gray and returns exactly
+  to the original image at zero;
 - temperature/tint move channels according to the documented gain model;
-- lift/gamma/gain respond per channel and neutral `0.5` is identity.
+- lift/gamma/gain/offset respond per channel and neutral `0.5` is identity.
 
 Failure caught: exposure implemented in encoded space, contrast pivot wrong,
-gamma using an unsigned `pow`, color controls remapped by FCP, or channel order
-swapped.
+hard tonal-mask boundaries, non-neutral hue math, color boost behaving like a
+second saturation knob, gamma using an unsigned `pow`, color controls remapped
+by FCP, or channel order swapped.
 
 ## 9. Tone-map curves and knee
 

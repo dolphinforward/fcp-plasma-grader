@@ -1,6 +1,9 @@
-# CST Grade — FxPlug 4 colour grading effect
+# FCP Plasma Grader — CST Grade FxPlug 4 colour grading effect
 
-This repository contains a from-scratch FxPlug 4 effect named **CST Grade**.
+This repository is published as **FCP Plasma Grader** and contains a from-scratch
+FxPlug 4 effect named **CST Grade**. The installed bundle, registration name,
+UUID, and parameter IDs retain the original CST Grade compatibility identity;
+the public repository name does not invalidate saved Final Cut Pro projects.
 The shell is Swift, the pixel work is one Metal compute kernel, and the build is
 locked to the requested Intel Monterey target:
 
@@ -104,11 +107,18 @@ The popup supports:
 - Panasonic V-Log inverse
 - ARRI LogC3 inverse using the EI 800 parameter set
 - a plain 2.2 power law
+- Samsung Log inverse using Samsung’s published piecewise curve
 
 The implementation assumes that the texture contains full-range normalized
 code values (`0.0` to `1.0` nominally). It does not silently reinterpret legal
 video range as full range. Out-of-range values are passed through the analytic
-branches and remain unclamped.
+branches and remain unclamped, except that Samsung’s specified inverse maps an
+encoded value below zero to its linear floor `-0.05`.
+
+For untouched Samsung Log footage, choose **Samsung Log** for Input Transfer
+and **Rec.2020** for Source Primaries. Samsung specifies BT.2020/D65 source
+colour for the profile. The two menus remain independent so selecting a
+transfer never silently changes an existing project’s gamut setting.
 
 Turning **Input Decode Enabled** off means “the incoming RGB is already scene
 linear”; it does not apply a hidden transfer. Turning **Gamut Transform
@@ -119,7 +129,8 @@ coordinates are Rec.2020.
 The exact source documents and constants are cited beside the shader formulas:
 [Sony S-Log3 technical summary](https://download.pro.sony/FNGP/protein/1237494271390/1237494271406.pdf),
 [Panasonic V-Log/V-Gamut](https://pro-av.panasonic.net/jp/cinema_camera_varicam_eva/support/pdf/VARICAM_V-Log_V-Gamut.pdf),
-and [ARRI LogC3 curve/data](https://www.arri.com/resource/blob/31918/66f56e6abb6e5b6553929edf9aa7483e/2017-03-alexa-logc-curve-in-vfx-data.pdf).
+[ARRI LogC3 curve/data](https://www.arri.com/resource/blob/31918/66f56e6abb6e5b6553929edf9aa7483e/2017-03-alexa-logc-curve-in-vfx-data.pdf),
+and [Samsung Log profiles and reference LUTs](https://developer.samsung.com/mobile/samsung-log-video.html).
 
 ### Gamut transform and working space
 
@@ -146,15 +157,46 @@ The grade stage operates after decode and the source→Rec.2020 matrix:
 
 - exposure: multiplication by `2^stops`
 - white balance: documented neutral-preserving red/green/blue gain model
-- contrast: `(value - 0.18) * contrast + 0.18`
+- offset: a whole-image RGB offset, neutral at `0.5` per channel
+- contrast: `(value - pivot) * contrast + pivot`, with an adjustable pivot
+- shadows/highlights: smooth overlapping luma masks with no hard threshold
 - saturation: Rec.2020 luma coefficients `0.2627, 0.6780, 0.0593`
+- color boost/vibrance: preferential chroma adjustment for less-saturated pixels
+- hue rotation: luma-preserving rotation around the neutral axis
 - lift: numeric RGB offset around UI neutral `0.5`
 - gamma: signed per-channel power around neutral exponent `1.0`
 - gain: per-channel multiplication around UI neutral `1.0`
 
-Lift/gamma/gain are numeric triples, not colour swatches. They use
+Lift/gamma/gain/offset are numeric triples, not colour swatches. They use
 `kFxParameterFlag_DONT_REMAP_COLORS`, so FCP does not convert their values as
 display colours. Negative and extended values remain possible in the shader.
+
+### DaVinci Resolve primary-tool coverage
+
+Blackmagic’s Color page identifies Lift/Gamma/Gain/Offset plus contrast,
+pivot, saturation, hue, temperature, tint, color boost, shadows, and highlights
+as its everyday primary grading controls. FCP Plasma Grader includes that core
+set in one linear-light stage, while keeping its own documented math rather
+than claiming bit-for-bit Resolve behavior. See Blackmagic’s
+[official Color page](https://www.blackmagicdesign.com/products/davinciresolve/color).
+
+The host and the effect divide the rest of the workflow deliberately:
+
+| Grading need | Where it lives |
+| --- | --- |
+| Transfer decode, gamut conversion, primary balance, tone rolloff, LUT looks | FCP Plasma Grader |
+| Lift/Gamma/Gain/Offset and primary adjustment controls | FCP Plasma Grader |
+| Shape/color masks, object tracking, parameter keyframes, and video scopes | Final Cut Pro |
+| Reusable grades | Final Cut Pro effect presets and the plugin’s LUT collections/favorites |
+| Serial corrections | Multiple effect instances in Final Cut Pro’s effect stack |
+
+Resolve’s custom curves, HSL qualifier UI, HDR zone wheels, Color Warper, node
+graph, gallery/shot matching, camera-RAW controls, AI tools, and spatial noise
+reduction are application-level systems, not silently approximated by this one
+FxPlug. Midtone Detail is also spatial edge processing; use FCP’s native detail
+or sharpening effect rather than a mislabeled per-pixel substitute. This keeps
+the plugin intuitive and preserves the one-kernel, low-memory design for the
+target 2015 Intel Mac.
 
 ### Tone map and output
 
@@ -221,9 +263,9 @@ FxPlug parameters are placed in host-native groups named `1. Input Decode`,
 `2. Gamut Transform`, `3. Linear Grade`, `4. Tone Map`, `5. Output Encode`,
 `6. Creative LUT`, and `Utilities`.
 The FxPlug standard-parameter creation API has no per-slider tooltip argument
-in this SDK generation, so standard controls use concise names, explicit ranges,
-and the documented pivot/domain in their labels; the custom LUT controls provide
-AppKit tooltips.
+in this SDK generation, so standard controls use concise names, explicit
+ranges, and documented defaults; the custom LUT controls provide AppKit
+tooltips.
 
 The wrapper organizer is also launchable directly by opening the installed
 `CSTGrade.fxplug` bundle. Direct launching is a fallback workflow, not a second
@@ -236,7 +278,8 @@ This is the most important host assumption in the project.
 
 `properties()` sets `kFxPropertyKey_DesiredProcessingColorInfo` to
 `kFxImageColorInfo_RGB_GAMMA_VIDEO`, because a plugin that receives linear
-pixels cannot also decode a user-selected sLog3/V-Log/LogC3 transfer function.
+pixels cannot also decode a user-selected sLog3/V-Log/LogC3/Samsung Log
+transfer function.
 Apple documents that the desired processing type combined with the project
 gamut determines the working colour space, and that the host passes input in
 that working space and expects output in the same working space. See
@@ -442,6 +485,9 @@ These are deliberate, visible risk points rather than hidden API guesses:
 9. **Range and metadata normalization.** Camera log formulas are applied to
    normalized full-range values. Legal-range Y'CbCr/video-range input or a host
    camera LUT needs an explicit upstream conversion; it is not inferred.
+   Samsung Log’s piecewise inverse and numerical boundary/18%-gray checks are
+   included, but the result still needs a target-Mac comparison against
+   Samsung’s official Log-to-Linear 1D LUT and known camera footage.
 10. **White-balance model.** Temperature/tint are a documented linear gain
     control, not a claim to implement a particular camera vendor’s chromatic
     adaptation transform. Replace it with a specified CAT only if that product

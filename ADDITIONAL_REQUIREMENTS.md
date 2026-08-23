@@ -81,3 +81,20 @@ an account, network connection, cloud service, subscription, or bundled propriet
 - Update the Xcode project, README, TESTING.md, uncertainty section, and source comments
   for this feature. Linux-side structural checks are welcome, but do not claim macOS,
   Xcode, Metal, or Final Cut verification.
+
+## Samsung Log and primary grading extensions
+
+- Append Samsung Log to the persisted Input Transfer menu without reordering any
+  existing choice. Decode with Samsung's documented analytic curve and validate its
+  branch join and 18% gray value independently.
+- Keep transfer and source primaries as explicit controls. Document the normal Samsung
+  Log pairing with the existing Rec.2020 source-primaries option.
+- Cover the essential DaVinci-style primary workflow with adjustable contrast pivot,
+  shadows, highlights, saturation, color boost/vibrance, hue rotation, and
+  Lift/Gamma/Gain/Offset while retaining the existing exposure and white-balance tools.
+- Do not claim proprietary Resolve math or attempt to hide suite-level limitations.
+  Map masks, tracking, scopes, presets, keyframes, and serial effect instances to Final
+  Cut Pro; document advanced Resolve-only systems that a single FxPlug does not replace.
+- Publish the repository as `fcp-plasma-grader`. Keep the original CST Grade bundle,
+  registration UUID, and persisted parameter identity so the repository rename does not
+  break projects.

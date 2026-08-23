@@ -88,10 +88,56 @@ def check_reference_math() -> None:
     logc_code = 400 / 1023
     logc = ((10 ** ((logc_code - 0.385537) / 0.247190)) - 0.052272) / 5.555556
     rec709 = ((0.5 + 0.099) / 1.099) ** (1 / 0.45)
+
+    samsung_transition = 0.206561909
+    samsung_low_join = -(10 ** ((samsung_transition - (-0.24597)) / -0.20942)) + 0.016904
+    samsung_high_join = (
+        10 ** ((samsung_transition - 0.720504856) / 0.258984868)
+    ) - 0.0003645
+    samsung_gray_code = (
+        0.258984868 * math.log10(0.18 + 0.0003645) + 0.720504856
+    )
+    samsung_gray = (
+        10 ** ((samsung_gray_code - 0.720504856) / 0.258984868)
+    ) - 0.0003645
     check(abs(slog3 - 0.18) < 1e-12, "sLog3 18-percent reference value drifted")
     check(abs(vlog - 0.179916274162) < 1e-9, "V-Log reference value drifted")
     check(abs(logc - 0.180000018677) < 1e-9, "LogC3 EI 800 reference value drifted")
     check(abs(rec709 - 0.259589400506) < 1e-9, "Rec.709 inverse reference value drifted")
+    check(abs(samsung_high_join - 0.01) < 1e-9, "Samsung Log transition value drifted")
+    check(abs(samsung_low_join - samsung_high_join) < 3e-7, "Samsung Log branches are discontinuous")
+    check(abs(samsung_gray_code - 0.527859237029) < 1e-12, "Samsung Log 18-percent code value drifted")
+    check(abs(samsung_gray - 0.18) < 1e-12, "Samsung Log 18-percent round trip drifted")
+
+    luma_weights = [0.2627, 0.6780, 0.0593]
+    basis1_raw = [luma_weights[1], -luma_weights[0], 0.0]
+    basis1_length = math.sqrt(sum(value * value for value in basis1_raw))
+    basis1 = [value / basis1_length for value in basis1_raw]
+    basis2_raw = [
+        luma_weights[1] * basis1[2] - luma_weights[2] * basis1[1],
+        luma_weights[2] * basis1[0] - luma_weights[0] * basis1[2],
+        luma_weights[0] * basis1[1] - luma_weights[1] * basis1[0],
+    ]
+    basis2_length = math.sqrt(sum(value * value for value in basis2_raw))
+    basis2 = [value / basis2_length for value in basis2_raw]
+
+    source_rgb = [0.8, 0.2, 0.1]
+    source_luma = sum(channel * weight for channel, weight in zip(source_rgb, luma_weights))
+    source_chroma = [channel - source_luma for channel in source_rgb]
+    coordinate1 = sum(channel * basis for channel, basis in zip(source_chroma, basis1))
+    coordinate2 = sum(channel * basis for channel, basis in zip(source_chroma, basis2))
+    angle = math.radians(137.0)
+    rotated_rgb = [
+        source_luma
+        + basis1[index] * (coordinate1 * math.cos(angle) - coordinate2 * math.sin(angle))
+        + basis2[index] * (coordinate1 * math.sin(angle) + coordinate2 * math.cos(angle))
+        for index in range(3)
+    ]
+    rotated_luma = sum(channel * weight for channel, weight in zip(rotated_rgb, luma_weights))
+    check(abs(rotated_luma - source_luma) < 1e-12, "hue rotation does not preserve Rec.2020 luma")
+    neutral_rgb = [0.35, 0.35, 0.35]
+    neutral_luma = sum(channel * weight for channel, weight in zip(neutral_rgb, luma_weights))
+    check(abs(neutral_luma - 0.35) < 1e-12, "Rec.2020 luma weights do not preserve neutral gray")
 
     d65 = (0.3127, 0.3290)
     spaces = {
@@ -118,9 +164,11 @@ def check_reference_math() -> None:
 def main() -> int:
     project = read("CSTGrade.xcodeproj/project.pbxproj")
     ids_source = read("CSTGradeXPC/CSTParameterIDs.swift")
+    plugin_source = read("CSTGradeXPC/CSTGradePlugIn.swift")
     uniforms_source = read("CSTGradeXPC/CSTUniforms.swift")
     shader = read("CSTGradeXPC/CSTShaders.metal")
     lut_source = read("CSTGradeXPC/CSTLUTLibrary.swift")
+    self_hosted_workflow = read(".github/workflows/build-self-hosted.yml")
     readme = read("README.md")
     testing = read("TESTING.md")
 
@@ -154,6 +202,12 @@ def main() -> int:
         check(setting in project, f"project is missing required build setting: {setting}")
     check("ARCHS_STANDARD" not in project, "project must not use ARCHS_STANDARD")
     check(project.count("kernel void") == 0, "Metal kernels do not belong in the project file")
+    check("workflow_dispatch:" in self_hosted_workflow, "self-hosted build must remain manually dispatched")
+    check("pull_request:" not in self_hosted_workflow, "public pull requests must never reach the self-hosted runner")
+    check(
+        "if: github.actor == github.repository_owner" in self_hosted_workflow,
+        "self-hosted public-repository build must remain restricted to the repository owner",
+    )
 
     source_files = sorted(
         list((ROOT / "CSTGrade").glob("*.swift"))
@@ -167,12 +221,12 @@ def main() -> int:
     check(id_block is not None, "CSTParameterID enum is missing")
     parameter_ids = re.findall(r"static let\s+(\w+): UInt32 = (\d+)", id_block.group(1) if id_block else "")
     values = [int(value) for _, value in parameter_ids]
-    check(len(parameter_ids) == 30, "expected 30 stable control/group parameter IDs")
+    check(len(parameter_ids) == 36, "expected 36 stable control/group parameter IDs")
     check(len(values) == len(set(values)), "parameter IDs must be unique")
-    check(values == list(range(1, 31)), "parameter IDs must remain the original ordered 1...30 contract")
+    check(values == list(range(1, 37)), "parameter IDs must remain the ordered 1...36 contract")
 
     expected_popups = {
-        "CSTInputTransfer": [0, 1, 2, 3, 4],
+        "CSTInputTransfer": [0, 1, 2, 3, 4, 5],
         "CSTSourcePrimaries": [0, 1, 2, 3, 4],
         "CSTToneMap": [0, 1, 2],
     }
@@ -180,6 +234,24 @@ def main() -> int:
         block = re.search(rf"enum {enum_name}: UInt32\s*\{{(.*?)\n\}}", ids_source, re.DOTALL)
         actual = [int(value) for value in re.findall(r"case\s+\w+\s*=\s*(\d+)", block.group(1) if block else "")]
         check(actual == expected_values, f"{enum_name} persisted popup values changed")
+
+    transfer_block = re.search(
+        r"let transferEntries: \[NSString\] = \[(.*?)\n\s*\]",
+        plugin_source,
+        re.DOTALL,
+    )
+    transfer_labels = re.findall(r'"([^"]+)"', transfer_block.group(1) if transfer_block else "")
+    check(
+        transfer_labels == [
+            "Rec.709",
+            "sLog3",
+            "V-Log",
+            "ARRI LogC3 (EI 800)",
+            "Gamma 2.2",
+            "Samsung Log",
+        ],
+        "Input Transfer labels no longer match their persisted popup values",
+    )
 
     swift_block = re.search(r"struct CSTUniforms\s*\{(.*?)\n\}", uniforms_source, re.DOTALL)
     metal_block = re.search(r"struct CSTUniforms\s*\{(.*?)\n\};", shader, re.DOTALL)
@@ -202,7 +274,7 @@ def main() -> int:
             swift_fields.append((normalized, name))
     metal_fields = re.findall(r"^\s*(float4|uint4|float|uint|int)\s+(\w+);", metal_block.group(1) if metal_block else "", re.MULTILINE)
     check(swift_fields == metal_fields, f"Swift/Metal uniform layouts differ: {swift_fields!r} != {metal_fields!r}")
-    check(len(swift_fields) == 30, "CSTUniforms must retain its 30-field, 288-byte layout")
+    check(len(swift_fields) == 35, "CSTUniforms must retain its 35-field, 320-byte layout")
 
     check(len(re.findall(r"\bkernel\s+void\s+", shader)) == 1, "shader must contain exactly one Metal kernel")
     check("kernel void cstGradeKernel" in shader, "single kernel must be named cstGradeKernel")
@@ -222,6 +294,15 @@ def main() -> int:
     check(positions == sorted(positions), "shader pipeline stages are out of order")
     check("encodeRec709(projectLinear)" not in shader, "encodeRec709 has no float3 overload")
     check("destination.write(float4(rgb, input.a), gid)" in kernel, "shader must preserve source alpha")
+    for marker in [
+        "inline float decodeSamsungLog",
+        "case 5u: return float3(decodeSamsungLog",
+        "applyShadowsHighlights(rgb",
+        "applyColorBoost(rgb",
+        "applyHueRotation(rgb",
+        "u.offsetControl.xyz",
+    ]:
+        check(marker in shader, f"shader is missing primary-grade behavior: {marker}")
 
     for marker in ["LUT_3D_SIZE", "2...64", ".withSecurityScope", "content changed since it was selected"]:
         check(marker in lut_source, f"LUT implementation is missing required behavior: {marker}")
@@ -237,19 +318,35 @@ def main() -> int:
     except Exception as error:
         check(False, f"shared Xcode scheme is invalid XML: {error}")
 
-    for marker in ["macOS deployment target: 11.0", "x86_64", "Final Cut Pro 10.6.10", "LUT Library", "What I am unsure about"]:
+    for marker in [
+        "FCP Plasma Grader",
+        "macOS deployment target: 11.0",
+        "x86_64",
+        "Final Cut Pro 10.6.10",
+        "LUT Library",
+        "Samsung Log",
+        "DaVinci Resolve primary-tool coverage",
+        "What I am unsure about",
+    ]:
         check(marker in readme, f"README is missing required documentation: {marker}")
-    for marker in ["Numerical transfer-function reference check", "Stage A/B bypasses", "Rec.709 versus wide-gamut library", "Creative LUT"]:
+    for marker in [
+        "Numerical transfer-function reference check",
+        "Samsung Log",
+        "Color Boost",
+        "Stage A/B bypasses",
+        "Rec.709 versus wide-gamut library",
+        "Creative LUT",
+    ]:
         check(marker in testing, f"TESTING.md is missing a required acceptance section: {marker}")
 
     check_reference_math()
 
     if FAILURES:
-        print("CST Grade structural verification: FAIL", file=sys.stderr)
+        print("FCP Plasma Grader structural verification: FAIL", file=sys.stderr)
         for failure in FAILURES:
             print(f"- {failure}", file=sys.stderr)
         return 1
-    print(f"CST Grade structural verification: PASS ({CHECKS} checks)")
+    print(f"FCP Plasma Grader structural verification: PASS ({CHECKS} checks)")
     print("Note: this is not a Swift/Metal/FxPlug compilation or an FCP runtime test.")
     return 0
 

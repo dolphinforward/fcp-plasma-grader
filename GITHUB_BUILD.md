@@ -1,6 +1,6 @@
 # GitHub build setup
 
-GitHub is useful here for private source control, review, structural checks, and
+GitHub is useful here for public source control, review, structural checks, and
 repeatable artifacts. It cannot replace the target Mac for Final Cut Pro testing.
 
 ## Why the canonical build is self-hosted
@@ -15,23 +15,26 @@ The repository therefore has two deliberately separate workflows:
   single-kernel stage order, and independent colour-math references. It does not
   claim to compile the plugin.
 - `Canonical Intel Monterey build` runs only when manually dispatched and only
-  on a self-hosted runner labeled `cst-grade`. It refuses to build unless it sees
-  Intel hardware, macOS 12, Xcode 14.2, and the FxPlug SDK/frameworks.
+  by the repository owner on a self-hosted runner labeled `cst-grade`. It
+  refuses to build unless it sees Intel hardware, macOS 12, Xcode 14.2, and the
+  FxPlug SDK/frameworks. Public pull requests cannot invoke this job.
 
 ## One-time target-Mac setup
 
 1. Install Xcode 14.2 and the FxPlug 4.1 SDK on the Monterey Intel Mac as
    described in `README.md`.
-2. In the private GitHub repository, open **Settings > Actions > Runners > New
+2. In the GitHub repository, open **Settings > Actions > Runners > New
    self-hosted runner**, choose macOS/x64, and follow GitHub's generated commands
    on the Mac. Those commands contain a short-lived registration token; never
    commit it.
 3. During `config.sh`, add the custom label `cst-grade`. The runner's resulting
    labels must include `self-hosted`, `macOS`, `X64`, and `cst-grade`.
-4. Prefer a dedicated, non-admin macOS account. Keep this repository private,
-   allow only trusted collaborators to edit workflows, and stop the runner when
-   builds are not needed. A self-hosted runner executes repository workflow code
-   on that Mac.
+4. Prefer a dedicated, non-admin macOS account. This repository is public, so
+   do not add `pull_request`, `pull_request_target`, or automatic `push` triggers
+   to the self-hosted workflow, and do not remove its repository-owner guard.
+   Allow only trusted collaborators to edit workflows and stop the runner when
+   builds are not needed. A self-hosted runner executes repository workflow
+   code on that Mac.
 
 GitHub documents self-hosted macOS 11 or later and x64 as supported, so Monterey
 fits the runner requirements. The exact FxPlug/Xcode environment remains yours

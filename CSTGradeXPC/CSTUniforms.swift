@@ -14,7 +14,8 @@
 // The LUT parameter vector is (amount, dimension, valid, enabled). The LUT key
 // is two UInt32 halves of the FNV-1a-64 content hash. The key is not used by
 // Metal; it lets the render callback select the cached 3D texture belonging to
-// this immutable plugin state without reading the filesystem.
+// this immutable plugin state without reading the filesystem. With 15 vectors,
+// 12 floats, 4 UInt32s, and 4 Int32s, the matching structs are 320 bytes.
 
 import simd
 
@@ -36,6 +37,7 @@ struct CSTUniforms {
     var liftControl = SIMD4<Float>(0.5, 0.5, 0.5, 1.0)
     var gammaControl = SIMD4<Float>(0.5, 0.5, 0.5, 1.0)
     var gainControl = SIMD4<Float>(0.5, 0.5, 0.5, 1.0)
+    var offsetControl = SIMD4<Float>(0.5, 0.5, 0.5, 1.0)
     var lutParameters = SIMD4<Float>(0, 0, 0, 0)
     var lutKey = SIMD4<UInt32>(0, 0, 0, 0)
 
@@ -47,6 +49,10 @@ struct CSTUniforms {
     var pivot: Float = 0.18
     var highlightKnee: Float = 1
     var outputGamma: Float = 2.4
+    var colorBoost: Float = 0
+    var hueRotation: Float = 0
+    var shadows: Float = 0
+    var highlights: Float = 0
 
     var stageFlags: UInt32 = 0
     var inputTransfer: UInt32 = CSTInputTransfer.rec709.rawValue

@@ -211,7 +211,8 @@ final class CSTGradePlugIn: NSObject, FxTileableEffect, FxCustomParameterViewHos
             "sLog3",
             "V-Log",
             "ARRI LogC3 (EI 800)",
-            "Gamma 2.2"
+            "Gamma 2.2",
+            "Samsung Log"
         ]
         try require(parameterAPI.addPopupMenu(
             withName: "Input Transfer",
@@ -291,7 +292,7 @@ final class CSTGradePlugIn: NSObject, FxTileableEffect, FxCustomParameterViewHos
         ), "White Balance Tint")
 
         try require(parameterAPI.addFloatSlider(
-            withName: "Contrast (pivot 0.18)",
+            withName: "Contrast",
             parameterID: CSTParameterID.contrast,
             defaultValue: 1.0,
             parameterMin: 0.0,
@@ -300,7 +301,43 @@ final class CSTGradePlugIn: NSObject, FxTileableEffect, FxCustomParameterViewHos
             sliderMax: 4.0,
             delta: 0.01,
             parameterFlags: defaultFlags
-        ), "Contrast (pivot 0.18)")
+        ), "Contrast")
+
+        try require(parameterAPI.addFloatSlider(
+            withName: "Contrast Pivot",
+            parameterID: CSTParameterID.contrastPivot,
+            defaultValue: 0.18,
+            parameterMin: 0.01,
+            parameterMax: 1.0,
+            sliderMin: 0.01,
+            sliderMax: 1.0,
+            delta: 0.001,
+            parameterFlags: defaultFlags
+        ), "Contrast Pivot")
+
+        try require(parameterAPI.addFloatSlider(
+            withName: "Shadows",
+            parameterID: CSTParameterID.shadows,
+            defaultValue: 0.0,
+            parameterMin: -1.0,
+            parameterMax: 1.0,
+            sliderMin: -1.0,
+            sliderMax: 1.0,
+            delta: 0.001,
+            parameterFlags: defaultFlags
+        ), "Shadows")
+
+        try require(parameterAPI.addFloatSlider(
+            withName: "Highlights",
+            parameterID: CSTParameterID.highlights,
+            defaultValue: 0.0,
+            parameterMin: -1.0,
+            parameterMax: 1.0,
+            sliderMin: -1.0,
+            sliderMax: 1.0,
+            delta: 0.001,
+            parameterFlags: defaultFlags
+        ), "Highlights")
 
         try require(parameterAPI.addFloatSlider(
             withName: "Saturation",
@@ -313,6 +350,30 @@ final class CSTGradePlugIn: NSObject, FxTileableEffect, FxCustomParameterViewHos
             delta: 0.01,
             parameterFlags: defaultFlags
         ), "Saturation")
+
+        try require(parameterAPI.addFloatSlider(
+            withName: "Color Boost (Vibrance)",
+            parameterID: CSTParameterID.colorBoost,
+            defaultValue: 0.0,
+            parameterMin: -1.0,
+            parameterMax: 1.0,
+            sliderMin: -1.0,
+            sliderMax: 1.0,
+            delta: 0.001,
+            parameterFlags: defaultFlags
+        ), "Color Boost (Vibrance)")
+
+        try require(parameterAPI.addFloatSlider(
+            withName: "Hue Rotation (degrees)",
+            parameterID: CSTParameterID.hueRotation,
+            defaultValue: 0.0,
+            parameterMin: -180.0,
+            parameterMax: 180.0,
+            sliderMin: -180.0,
+            sliderMax: 180.0,
+            delta: 0.1,
+            parameterFlags: defaultFlags
+        ), "Hue Rotation (degrees)")
 
         try require(parameterAPI.addColorParameter(
             withName: "Lift",
@@ -340,6 +401,15 @@ final class CSTGradePlugIn: NSObject, FxTileableEffect, FxCustomParameterViewHos
             defaultBlue: 0.5,
             parameterFlags: numericColorFlags
         ), "Gain")
+
+        try require(parameterAPI.addColorParameter(
+            withName: "Offset",
+            parameterID: CSTParameterID.offset,
+            defaultRed: 0.5,
+            defaultGreen: 0.5,
+            defaultBlue: 0.5,
+            parameterFlags: numericColorFlags
+        ), "Offset")
         try endGroup("3. Linear Grade")
 
         try startGroup("4. Tone Map", id: CSTParameterID.toneMapGroup)
@@ -581,11 +651,21 @@ final class CSTGradePlugIn: NSObject, FxTileableEffect, FxCustomParameterViewHos
             CSTParameterID.whiteBalanceTemperature,
             CSTParameterID.whiteBalanceTint,
             CSTParameterID.contrast,
-            CSTParameterID.saturation
+            CSTParameterID.contrastPivot,
+            CSTParameterID.shadows,
+            CSTParameterID.highlights,
+            CSTParameterID.saturation,
+            CSTParameterID.colorBoost,
+            CSTParameterID.hueRotation
         ] {
             setDisabled(id, !gradeEnabled)
         }
-        for id in [CSTParameterID.lift, CSTParameterID.gamma, CSTParameterID.gain] {
+        for id in [
+            CSTParameterID.lift,
+            CSTParameterID.gamma,
+            CSTParameterID.gain,
+            CSTParameterID.offset
+        ] {
             setDisabled(id, !gradeEnabled, numericColor: true)
         }
 
@@ -662,10 +742,16 @@ final class CSTGradePlugIn: NSObject, FxTileableEffect, FxCustomParameterViewHos
         setFloat(CSTParameterID.whiteBalanceTemperature, 0)
         setFloat(CSTParameterID.whiteBalanceTint, 0)
         setFloat(CSTParameterID.contrast, 1)
+        setFloat(CSTParameterID.contrastPivot, 0.18)
+        setFloat(CSTParameterID.shadows, 0)
+        setFloat(CSTParameterID.highlights, 0)
         setFloat(CSTParameterID.saturation, 1)
+        setFloat(CSTParameterID.colorBoost, 0)
+        setFloat(CSTParameterID.hueRotation, 0)
         setColor(CSTParameterID.lift, 0.5, 0.5, 0.5)
         setColor(CSTParameterID.gamma, 0.5, 0.5, 0.5)
         setColor(CSTParameterID.gain, 0.5, 0.5, 0.5)
+        setColor(CSTParameterID.offset, 0.5, 0.5, 0.5)
         setBool(CSTParameterID.toneMapEnabled, true)
         setInt(CSTParameterID.toneMap, Int32(CSTToneMap.reinhard.rawValue))
         setFloat(CSTParameterID.highlightKnee, 1)
@@ -873,11 +959,25 @@ final class CSTGradePlugIn: NSObject, FxTileableEffect, FxCustomParameterViewHos
         uniforms.saturation = floatValue(
             retrievalAPI, parameterID: CSTParameterID.saturation, at: renderTime, defaultValue: 1
         )
-        uniforms.pivot = 0.18
+        uniforms.pivot = floatValue(
+            retrievalAPI, parameterID: CSTParameterID.contrastPivot, at: renderTime, defaultValue: 0.18
+        )
         uniforms.highlightKnee = floatValue(
             retrievalAPI, parameterID: CSTParameterID.highlightKnee, at: renderTime, defaultValue: 1
         )
         uniforms.outputGamma = 2.4
+        uniforms.colorBoost = floatValue(
+            retrievalAPI, parameterID: CSTParameterID.colorBoost, at: renderTime, defaultValue: 0
+        )
+        uniforms.hueRotation = floatValue(
+            retrievalAPI, parameterID: CSTParameterID.hueRotation, at: renderTime, defaultValue: 0
+        )
+        uniforms.shadows = floatValue(
+            retrievalAPI, parameterID: CSTParameterID.shadows, at: renderTime, defaultValue: 0
+        )
+        uniforms.highlights = floatValue(
+            retrievalAPI, parameterID: CSTParameterID.highlights, at: renderTime, defaultValue: 0
+        )
         uniforms.liftControl = colorValue(
             retrievalAPI, parameterID: CSTParameterID.lift, at: renderTime
         )
@@ -886,6 +986,9 @@ final class CSTGradePlugIn: NSObject, FxTileableEffect, FxCustomParameterViewHos
         )
         uniforms.gainControl = colorValue(
             retrievalAPI, parameterID: CSTParameterID.gain, at: renderTime
+        )
+        uniforms.offsetControl = colorValue(
+            retrievalAPI, parameterID: CSTParameterID.offset, at: renderTime
         )
 
         // Resolve and parse the selected file while the host APIs are legal.

@@ -5,9 +5,9 @@
 // textures and no second render/compute pass. Values stay float and are not
 // clamped between stages. Only a successful output encode clamps to [0, 1].
 //
-// Uniform layout must match CSTUniforms.swift exactly: 14 vector values
-// (the last is uint4), followed by 8 float values, 4 uint values, and 4 int
-// values (288 bytes with the 16-byte vector alignment used by both languages).
+// Uniform layout must match CSTUniforms.swift exactly: 15 vector values
+// (the last is uint4), followed by 12 float values, 4 uint values, and 4 int
+// values (320 bytes with the 16-byte vector alignment used by both languages).
 //
 
 #include <metal_stdlib>
@@ -29,6 +29,7 @@ struct CSTUniforms {
     float4 liftControl;
     float4 gammaControl;
     float4 gainControl;
+    float4 offsetControl;
     float4 lutParameters;
     uint4 lutKey;
 
@@ -40,6 +41,10 @@ struct CSTUniforms {
     float pivot;
     float highlightKnee;
     float outputGamma;
+    float colorBoost;
+    float hueRotation;
+    float shadows;
+    float highlights;
 
     uint stageFlags;
     uint inputTransfer;
@@ -153,12 +158,37 @@ inline float decodeLogC3EI800(float encoded) {
         : (encoded - f) / e;
 }
 
+inline float decodeSamsungLog(float encoded) {
+    // Samsung Log inverse OETF. Samsung publishes the curve specification and
+    // a reference Log-to-Linear 1D LUT on its developer site. Samsung Log uses
+    // BT.2020/D65 source primaries, selected separately in the inspector.
+    // https://developer.samsung.com/mobile/samsung-log-video.html
+    // The first branch is vendor-defined: encoded values below zero map to
+    // x0 rather than being clamped later in the processing pipeline.
+    const float x0 = -0.05f;
+    const float transition = 0.206561909f;
+    const float a1 = 0.258984868f;
+    const float b1 = 0.0003645f;
+    const float y1 = 0.720504856f;
+    const float a2 = -0.20942f;
+    const float b2 = 0.016904f;
+    const float y2 = -0.24597f;
+    if (encoded < 0.0f) {
+        return x0;
+    }
+    if (encoded < transition) {
+        return -pow(10.0f, (encoded - y2) / a2) + b2;
+    }
+    return pow(10.0f, (encoded - y1) / a1) - b1;
+}
+
 inline float3 decodeInput(float3 encoded, uint transfer) {
     switch (transfer) {
         case 1u: return float3(decodeSLog3(encoded.x), decodeSLog3(encoded.y), decodeSLog3(encoded.z));
         case 2u: return float3(decodeVLog(encoded.x), decodeVLog(encoded.y), decodeVLog(encoded.z));
         case 3u: return float3(decodeLogC3EI800(encoded.x), decodeLogC3EI800(encoded.y), decodeLogC3EI800(encoded.z));
         case 4u: return float3(decodeGamma22(encoded.x), decodeGamma22(encoded.y), decodeGamma22(encoded.z));
+        case 5u: return float3(decodeSamsungLog(encoded.x), decodeSamsungLog(encoded.y), decodeSamsungLog(encoded.z));
         case 0u:
         default:
             return float3(decodeRec709(encoded.x), decodeRec709(encoded.y), decodeRec709(encoded.z));
@@ -189,11 +219,61 @@ inline float3 applySaturation(float3 rgb, float saturation) {
     return luma + (rgb - luma) * saturation;
 }
 
+inline float3 applyShadowsHighlights(float3 rgb, float shadows, float highlights) {
+    // Smooth, overlapping tonal masks keep the controls continuous and avoid
+    // hard boundaries. The scalar adjustment changes luminance equally in all
+    // channels and deliberately leaves extended-range values unclamped.
+    const float3 lumaWeights = float3(0.2627f, 0.6780f, 0.0593f);
+    float luma = dot(rgb, lumaWeights);
+    float shadowWeight = 1.0f - smoothstep(0.0f, 0.5f, luma);
+    float highlightWeight = smoothstep(0.18f, 1.0f, luma);
+    float adjustment = 0.25f * (
+        shadows * shadowWeight + highlights * highlightWeight
+    );
+    return rgb + adjustment;
+}
+
+inline float3 applyColorBoost(float3 rgb, float amount) {
+    // Resolve calls this family of control Color Boost or Vibrance: less-
+    // saturated pixels receive more change than already-colorful pixels. This
+    // is a documented local implementation, not a claim to copy Resolve's
+    // proprietary math.
+    const float3 lumaWeights = float3(0.2627f, 0.6780f, 0.0593f);
+    float luma = dot(rgb, lumaWeights);
+    float3 chroma = rgb - luma;
+    float colorfulness = max(max(abs(chroma.x), abs(chroma.y)), abs(chroma.z));
+    float lowSaturationWeight = 1.0f / (1.0f + 4.0f * colorfulness);
+    return luma + chroma * (1.0f + amount * lowSaturationWeight);
+}
+
+inline float3 applyHueRotation(float3 rgb, float degrees) {
+    // Rotate chroma in the plane orthogonal to the Rec.2020 luma vector. The
+    // neutral axis and weighted luminance are preserved without clipping.
+    const float3 lumaWeights = float3(0.2627f, 0.6780f, 0.0593f);
+    float luma = dot(rgb, lumaWeights);
+    float3 neutral = float3(luma, luma, luma);
+    float3 chroma = rgb - neutral;
+    float3 basis1 = normalize(float3(lumaWeights.y, -lumaWeights.x, 0.0f));
+    float3 basis2 = normalize(cross(lumaWeights, basis1));
+    float angle = degrees * 0.017453292519943295f;
+    float cosine = cos(angle);
+    float sine = sin(angle);
+    float coordinate1 = dot(chroma, basis1);
+    float coordinate2 = dot(chroma, basis2);
+    float3 rotated = basis1 * (coordinate1 * cosine - coordinate2 * sine)
+        + basis2 * (coordinate1 * sine + coordinate2 * cosine);
+    return neutral + rotated;
+}
+
 inline float3 applyGrade(float3 rgb, constant CSTUniforms &u) {
     rgb *= exp2(u.exposureStops);
     rgb = applyWhiteBalance(rgb, u.temperature, u.tint);
+    rgb += (u.offsetControl.xyz - 0.5f) * 0.50f;
     rgb = (rgb - u.pivot) * u.contrast + u.pivot;
+    rgb = applyShadowsHighlights(rgb, u.shadows, u.highlights);
     rgb = applySaturation(rgb, u.saturation);
+    rgb = applyColorBoost(rgb, u.colorBoost);
+    rgb = applyHueRotation(rgb, u.hueRotation);
 
     // Lift is an offset of +/-0.1 around the neutral UI value 0.5. Gamma is a
     // signed power exponent (neutral 1.0 at 0.5). Gain is a multiplicative
